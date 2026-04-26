@@ -243,52 +243,64 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
         transition={{ duration: 0.5, ease: "easeOut" }}
         id={`post-${id}`} 
         className={cn(
-          "glass-card mb-6 overflow-hidden border-brand/5 bg-white shadow-sm",
-          commerce?.isSponsored && "border-brand/30 shadow-brand/5 bg-brand/[0.02]"
+          "bg-white shadow-sm sm:rounded-3xl sm:border border-gray-100 overflow-hidden mb-4",
+          commerce?.isSponsored && "bg-brand/[0.02]"
         )}
       >
-        {/* Header */}
-        <div className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full border border-brand/10 bg-white" referrerPolicy="no-referrer" />
+        {/* Header & Overlay */}
+        <div className="p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/profile/${user.uid}`)}>
+            <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full border border-gray-100 bg-gray-50 object-cover" />
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-gray-900">{user.name}</h3>
+              <div className="flex items-center gap-1">
+                <h3 className="font-bold text-[14px] text-gray-900 leading-none">{user.name}</h3>
+                {user.handle === 'tambayan_ads' && (
+                  <UserCheck size={14} className="text-blue-500" />
+                )}
                 {commerce?.isSponsored && (
-                  <span className="text-[10px] bg-brand/10 text-brand px-2 py-0.5 rounded-full font-black uppercase italic tracking-tighter">Verified Ad</span>
+                  <span className="ml-1 text-[9px] bg-brand/10 text-brand px-1.5 py-[1px] rounded bg-white border border-brand/20 font-black uppercase tracking-tighter">Ad</span>
                 )}
               </div>
-              <p className="text-xs text-gray-400 font-medium">@{user.handle}</p>
+              <p className="text-[12px] text-gray-500 font-medium">@{user.handle}</p>
             </div>
           </div>
           
-          {auth.currentUser?.uid !== user.uid && !commerce?.isSponsored && (
-            <button 
-              onClick={handleFollow}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
-                isFollowing ? "bg-gray-100 text-gray-400" : "bg-brand text-white shadow-md shadow-brand/20"
-              )}
-            >
-              {isFollowing ? <><UserCheck size={12} /> Kasama</> : <><UserPlus size={12} /> Sali</>}
+          <div className="flex items-center gap-2">
+            {auth.currentUser?.uid !== user.uid && !commerce?.isSponsored && (
+              <button 
+                onClick={handleFollow}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-[12px] font-bold transition-all",
+                  isFollowing ? "bg-gray-100 text-gray-600" : "bg-brand/10 text-brand hover:bg-brand/20"
+                )}
+              >
+                {isFollowing ? 'Following' : 'Follow'}
+              </button>
+            )}
+            <button onClick={handleReport} className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-50 transition-colors">
+              <MoreHorizontal size={20} />
             </button>
-          )}
-          
-          <button 
-            onClick={handleReport}
-            className="text-gray-300 hover:text-brand transition-colors p-2"
-          >
-            <MoreHorizontal size={20} />
-          </button>
+          </div>
+        </div>
+
+        {/* Caption */}
+        <div className="px-4 pb-2">
+          <p className="text-[14px] text-gray-800 whitespace-pre-wrap leading-snug">
+            {content.text.split(/(#[a-zA-Z0-9]+)/g).map((part, i) => (
+              part.startsWith('#') 
+                ? <span key={i} className="text-brand font-semibold cursor-pointer hover:underline">{part}</span> 
+                : <span key={i}>{part}</span>
+            ))}
+          </p>
         </div>
 
         {/* Main Content */}
-        <div className="relative aspect-square bg-gray-50 overflow-hidden group">
+        <div className="relative w-full max-h-[70vh] bg-black overflow-hidden group">
           {mediaType === 'video' ? (
             <video 
               ref={videoRef}
               src={content.image} 
-              className="w-full h-full object-cover" 
+              className="w-full max-h-[70vh] object-contain" 
               loop 
               muted 
               playsInline
@@ -297,107 +309,87 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
           ) : (
             <img 
               src={content.image} 
-              alt={content.text} 
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+              alt="Post" 
+              className="w-full max-h-[70vh] object-contain transition-transform duration-700" 
               referrerPolicy="no-referrer"
             />
           )}
           
           {commerce?.isSelling && !commerce?.isSponsored && (
-            <div className="absolute top-4 right-4 glass px-3 py-1.5 rounded-full flex items-center gap-2 bg-white/90">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-wider text-gray-900">May Tinda</span>
-            </div>
-          )}
-
-          {commerce?.isSponsored && (
-            <div className="absolute top-4 left-4 glass px-3 py-1.5 rounded-full flex items-center gap-2 bg-brand/10 border-brand/20 animate-pulse">
-              <Megaphone size={12} className="text-brand" />
-              <span className="text-[10px] font-black uppercase tracking-wider text-brand">BOSS PICK</span>
+            <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl flex items-center gap-2 border border-white/10 shadow-xl">
+              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-[11px] font-black uppercase tracking-wider text-white">Selling</span>
             </div>
           )}
         </div>
 
         {/* Actions & Info */}
-        <div className="p-4 space-y-4">
+        <div className="p-3 space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-5">
               <button 
                 onClick={handleLike}
-                className={cn("flex items-center gap-1.5 transition-colors", isLiked ? "text-brand" : "text-gray-400 hover:text-brand")}
+                className={cn("flex items-center gap-1.5 transition-colors group", isLiked ? "text-brand" : "text-gray-700 hover:text-brand")}
               >
-                <Heart size={22} fill={isLiked ? "currentColor" : "none"} />
-                <span className="text-xs font-bold text-gray-700">{localStats.likes}</span>
+                <Heart size={26} fill={isLiked ? "currentColor" : "none"} className={cn("transition-transform group-active:scale-90", isLiked && "text-brand")} />
+                <span className="text-[13px] font-bold">{localStats.likes}</span>
               </button>
               <button 
                 onClick={() => setShowComments(true)}
-                className="flex items-center gap-1.5 text-gray-400 hover:text-brand transition-colors"
+                className="flex items-center gap-1.5 text-gray-700 hover:text-brand transition-colors group"
               >
-                <MessageCircle size={22} />
-                <span className="text-xs font-bold text-gray-700">{localStats.comments}</span>
+                <MessageCircle size={26} className="transition-transform group-active:scale-90" />
+                <span className="text-[13px] font-bold">{localStats.comments}</span>
               </button>
+              <button 
+                onClick={handleShare}
+                className="flex items-center gap-1.5 text-gray-700 hover:text-brand transition-colors group"
+                title="Share Flex"
+              >
+                <Share2 size={26} className="transition-transform group-active:scale-90" />
+                <span className="text-[13px] font-bold">{localStats.shares || 0}</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3">
               {auth.currentUser?.uid !== user.uid && (
                 <button 
                   onClick={handleMessage}
-                  className="flex items-center gap-1.5 text-gray-400 hover:text-brand transition-colors"
+                  className="text-gray-500 hover:text-brand transition-colors bg-gray-100 p-2 rounded-full"
                 >
-                  <MessageSquare size={22} />
+                  <MessageSquare size={18} />
                 </button>
-              )}
-              <button 
-                onClick={handleShare}
-                className="text-gray-400 hover:text-brand transition-colors"
-                title="Share Flex"
-              >
-                <Share2 size={22} />
-              </button>
-              <button 
-                onClick={handleDownload}
-                className="text-gray-400 hover:text-brand transition-colors"
-                title="Download Flex"
-              >
-                <Download size={22} />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5 text-gray-400">
-                <Eye size={16} />
-                <span className="text-[10px] font-black text-gray-400">{(localStats.views || 0).toLocaleString()}</span>
-              </div>
-              
-              {commerce?.isSelling && (
-                <div className="text-right">
-                  <p className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Presyong Kaibigan</p>
-                  <p className="text-lg font-black text-brand">₱{commerce.price.toLocaleString()}</p>
-                </div>
               )}
             </div>
           </div>
 
-          <div className="space-y-1">
-            <p className="text-sm text-gray-800 leading-relaxed">
-              <span className="font-black mr-2 text-gray-900 uppercase text-[12px] tracking-tight">{user.handle}</span>
-              {content.text}
-            </p>
+          <div className="flex items-center gap-1.5 text-gray-400 px-1 hover:text-gray-600 transition-colors">
+            <Eye size={14} />
+            <span className="text-[11px] font-black tracking-widest">{(localStats.views || 0).toLocaleString()} views</span>
           </div>
 
           {commerce?.isSelling && (
-            <motion.button 
-              whileTap={{ scale: 0.95 }}
-              onClick={handleOrder}
-              disabled={orderLoading}
-              className="w-full btn-primary flex items-center justify-center gap-2 py-4 disabled:opacity-50 shadow-brand/20"
-            >
-              {orderLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <ShoppingBag size={18} />
-                  I-ORDER NA (COD)
-                </>
-              )}
-            </motion.button>
+            <div className="bg-gray-50 rounded-xl p-3 flex items-center justify-between mt-2 border border-brand/10">
+              <div>
+                <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest leading-none">{commerce.itemName || 'For Sale'}</p>
+                <p className="text-lg font-black text-brand leading-none mt-1">₱{commerce.price.toLocaleString()}</p>
+              </div>
+              <motion.button 
+                whileTap={{ scale: 0.95 }}
+                onClick={handleOrder}
+                disabled={orderLoading}
+                className="bg-brand text-white px-5 py-2.5 rounded-lg font-bold text-[12px] flex items-center gap-2 shadow-md shadow-brand/20 disabled:opacity-50"
+              >
+                {orderLoading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <ShoppingBag size={14} />
+                    Buy Now
+                  </>
+                )}
+              </motion.button>
+            </div>
           )}
         </div>
       </motion.article>

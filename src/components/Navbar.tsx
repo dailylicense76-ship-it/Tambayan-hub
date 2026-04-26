@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Search, Bell, ShoppingBag, Menu, User, LogOut } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Bell, ShoppingBag, User, Download } from 'lucide-react';
 import { Logo } from './Logo';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { auth } from '../lib/firebase';
 
 interface NavbarProps {
@@ -14,8 +14,28 @@ export const Navbar: React.FC<NavbarProps> = ({ onAuthClick }) => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const navigate = useNavigate();
   const user = auth.currentUser;
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +72,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onAuthClick }) => {
         </div>
         
         <div className="flex items-center gap-3">
+          {/* Install App Button (PWA) */}
+          {deferredPrompt && (
+            <button 
+              onClick={handleInstallClick}
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-brand text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-md hover:bg-brand/90 transition-colors"
+            >
+              <Download size={12} />
+              <span className="hidden sm:inline">Install</span>
+            </button>
+          )}
+
           {/* Mobile Search Trigger */}
           <button 
             onClick={() => navigate('/discover')}
@@ -62,26 +93,26 @@ export const Navbar: React.FC<NavbarProps> = ({ onAuthClick }) => {
           
           <button 
             onClick={() => setShowNotifications(!showNotifications)}
-            className="relative p-2.5 bg-gray-50 rounded-2xl text-gray-400 hover:text-brand hover:bg-brand/5 transition-all group"
+            className="relative p-2 bg-gray-50 rounded-2xl text-gray-400 hover:text-brand hover:bg-brand/5 transition-all group"
           >
             <Bell size={20} />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-brand rounded-full ring-2 ring-white animate-pulse" />
+            <span className="absolute top-2 right-2 w-2 h-2 bg-brand rounded-full ring-2 ring-white animate-pulse" />
           </button>
 
           <button 
             onClick={() => auth.currentUser ? navigate('/admin') : onAuthClick()}
-            className="p-2.5 bg-gray-50 rounded-2xl text-gray-400 hover:text-brand hover:bg-brand/5 transition-all md:flex hidden"
+            className="p-2 bg-gray-50 rounded-2xl text-gray-400 hover:text-brand hover:bg-brand/5 transition-all md:flex hidden"
           >
             <ShoppingBag size={20} />
           </button>
           
-          <div className="h-8 w-px bg-gray-100 mx-1 hidden md:block" />
+          <div className="h-8 w-px bg-gray-100 mx-0.5 hidden md:block" />
           
           <button 
             onClick={() => user ? navigate('/profile') : onAuthClick()}
-            className="p-1 border-2 border-brand/10 rounded-2xl overflow-hidden hover:border-brand transition-all relative group"
+            className="p-0.5 border-2 border-brand/10 rounded-full overflow-hidden hover:border-brand transition-all relative group"
           >
-            <div className="w-8 h-8 md:w-9 md:h-9 bg-gray-100 flex items-center justify-center">
+            <div className="w-8 h-8 md:w-9 md:h-9 bg-gray-100 flex items-center justify-center rounded-full overflow-hidden">
               {user?.photoURL ? (
                 <img src={user.photoURL} alt="" className="w-full h-full object-cover" />
               ) : (

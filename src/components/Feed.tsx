@@ -83,51 +83,53 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
   }
 
   return (
-    <div className="pb-24 bg-white min-h-screen">
+    <div className="pb-24 min-h-screen bg-[#f0f0f2]">
       {/* Top Tabs */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 px-4 flex items-center justify-center gap-8 py-4">
-        <button 
-          onClick={() => setActiveTab('for-you')}
-          className={cn(
-            "text-sm font-black uppercase tracking-widest transition-all",
-            activeTab === 'for-you' ? "text-brand scale-110" : "text-gray-300 hover:text-gray-400"
-          )}
-        >
-          For You
-        </button>
-        <button 
-          onClick={() => setActiveTab('following')}
-          className={cn(
-            "text-sm font-black uppercase tracking-widest transition-all",
-            activeTab === 'following' ? "text-brand scale-110" : "text-gray-300 hover:text-gray-400"
-          )}
-        >
-          Following
-        </button>
-      </div>
-
-      {/* Stories / Highlights Bar (TikTok Style) */}
-      <div className="px-4 py-8 border-b border-gray-100 flex gap-5 overflow-x-auto hide-scrollbar bg-gray-50/30">
-        <div className="flex flex-col items-center gap-2 shrink-0">
-          <div className="w-16 h-16 rounded-full border-2 border-brand p-0.5 relative group cursor-pointer">
-            <div className="w-full h-full rounded-full border border-gray-100 bg-white flex items-center justify-center p-1 overflow-hidden">
-               <img src={postImg} className="w-full h-full rounded-full object-cover" alt="" />
-            </div>
-            <div className="absolute bottom-0 right-0 bg-brand text-white rounded-full p-1 border-2 border-white shadow-lg">
-              <PlusCircle size={10} strokeWidth={3} />
-            </div>
-          </div>
-          <span className="text-[9px] font-black uppercase text-gray-400 tracking-tighter">Flex Ko</span>
+      <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-gray-100 flex items-center justify-center py-0 shadow-sm">
+        <div className="flex gap-8 px-4 w-full max-w-lg mx-auto justify-center">
+          <button 
+            onClick={() => setActiveTab('for-you')}
+            className={cn(
+              "text-[13px] font-black uppercase tracking-widest transition-all py-5 border-b-2",
+              activeTab === 'for-you' ? "text-brand border-brand" : "text-gray-400 border-transparent hover:text-gray-600"
+            )}
+          >
+            For You
+          </button>
+          <button 
+            onClick={() => setActiveTab('following')}
+            className={cn(
+              "text-[13px] font-black uppercase tracking-widest transition-all py-5 border-b-2",
+              activeTab === 'following' ? "text-brand border-brand" : "text-gray-400 border-transparent hover:text-gray-600"
+            )}
+          >
+            Following
+          </button>
         </div>
       </div>
 
-      <div className="px-4 py-8">
+      {/* Stories / Highlights Bar (TikTok Style) */}
+      <div className="py-4 border-b border-gray-100 flex gap-4 overflow-x-auto custom-scrollbar bg-white px-2">
+        <div className="flex flex-col items-center gap-1.5 shrink-0 ml-2">
+          <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-300 p-0.5 relative group cursor-pointer hover:border-brand transition-colors">
+            <div className="w-full h-full rounded-full bg-gray-50 flex items-center justify-center overflow-hidden">
+               <img src={postImg} className="w-full h-full object-cover" alt="Your Story" />
+            </div>
+            <div className="absolute right-0 bottom-0 bg-brand text-white rounded-full p-1 border-2 border-white shadow-sm transition-transform group-hover:scale-110">
+              <PlusCircle size={12} strokeWidth={3} />
+            </div>
+          </div>
+          <span className="text-[10px] font-bold text-gray-500">Add Story</span>
+        </div>
+      </div>
+
+      <div className="w-full max-w-lg mx-auto">
         {posts.length > 0 && (
-          <div className="flex gap-4 mb-10 overflow-x-auto hide-scrollbar pb-2">
+          <div className="flex gap-2 mb-2 pt-4 px-4 overflow-x-auto custom-scrollbar pb-2">
             {Array.from(new Set(['All', ...posts.flatMap(p => p.text?.match(/#[a-zA-Z0-9]+/g) || []).map(t => t.replace('#', ''))])).slice(0, 8).map((cat) => (
               <button 
                 key={cat} 
-                className="whitespace-nowrap bg-gray-50 text-gray-400 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-brand hover:text-white transition-all shadow-sm border border-gray-100"
+                className="whitespace-nowrap bg-white text-gray-600 px-4 py-2 rounded-full text-[11px] font-bold transition-all shadow-sm border border-gray-100 hover:bg-gray-50"
               >
                 {cat}
               </button>
@@ -164,7 +166,7 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
           )}
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6 pt-2">
           {posts.map((post) => (
             <PostCard 
               key={post.id} 

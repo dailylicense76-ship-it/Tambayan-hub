@@ -84,8 +84,8 @@ export const CreatePost: React.FC = () => {
           <div 
             onClick={() => fileInputRef.current?.click()}
             className={cn(
-              "relative aspect-[4/5] rounded-[32px] border-2 border-dashed transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center gap-4 group",
-              previewUrl ? "border-brand border-solid" : "border-gray-100 bg-gray-50/50 hover:bg-gray-50 hover:border-brand/20"
+              "relative w-full h-32 rounded-2xl border-2 border-dashed transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center gap-2 group",
+              previewUrl ? "border-brand border-solid h-auto max-h-64" : "border-gray-300 bg-gray-50/50 hover:bg-gray-50 hover:border-brand/50"
             )}
           >
             <input 
@@ -99,9 +99,9 @@ export const CreatePost: React.FC = () => {
             {previewUrl ? (
               <>
                 {file?.type.startsWith('video/') ? (
-                   <video src={previewUrl} className="w-full h-full object-cover" muted loop autoPlay />
+                   <video src={previewUrl} className="w-full h-64 object-contain bg-black" muted loop autoPlay />
                 ) : (
-                  <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />
+                  <img src={previewUrl} className="w-full h-64 object-contain bg-gray-100" alt="Preview" />
                 )}
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                   <div className="bg-white/90 backdrop-blur-sm p-3 rounded-2xl text-gray-900 flex items-center gap-2">
@@ -111,12 +111,11 @@ export const CreatePost: React.FC = () => {
                 </div>
               </>
             ) : (
-              <div className="text-center p-8">
-                <div className="w-16 h-16 bg-white rounded-3xl shadow-sm border border-gray-100 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                  <Film size={28} className="text-brand" />
+              <div className="text-center flex flex-col items-center justify-center h-full w-full">
+                <div className="w-10 h-10 bg-white rounded-full shadow-sm border border-gray-200 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <Film size={20} className="text-brand" />
                 </div>
-                <p className="text-sm font-black text-gray-900 uppercase tracking-tight">Tap to Upload</p>
-                <p className="text-[10px] font-bold text-gray-400 uppercase mt-1">Photos or Videos (Max 10MB)</p>
+                <p className="text-[12px] font-bold text-gray-700 capitalize">Upload Photo/Video</p>
               </div>
             )}
           </div>
