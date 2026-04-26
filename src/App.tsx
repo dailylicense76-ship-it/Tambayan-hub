@@ -107,7 +107,7 @@ const AppContent: React.FC = () => {
       <CanvasBackground />
 
       {/* Responsive Wrapper */}
-      <div className="w-full h-full md:h-[calc(100%-2rem)] bg-white md:bg-transparent shadow-brand/10 md:border border-white/5 relative overflow-hidden flex flex-col md:max-w-[600px] mx-auto md:my-4 md:rounded-[40px] md:glass-card">
+      <div className="w-full h-[100dvh] md:h-[calc(100vh-2rem)] bg-white md:bg-transparent shadow-brand/10 md:border border-white/5 relative overflow-hidden flex flex-col md:max-w-[600px] mx-auto md:my-4 md:rounded-[40px] md:glass-card">
         <div className="flex-shrink-0 z-50 w-full">
           <Navbar onAuthClick={() => setIsAuthModalOpen(true)} />
         </div>
@@ -133,7 +133,7 @@ const AppContent: React.FC = () => {
             </motion.div>
           </AnimatePresence>
 
-          <footer className="mt-8 pt-8 pb-28 text-center text-gray-300 border-t border-gray-100 space-y-1">
+          <footer className="mt-8 pt-6 pb-6 text-center text-gray-300 border-t border-gray-100 space-y-1">
             <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">DEGZ FLEX HUB &copy; 2026</p>
             <p className="text-[7px] font-bold uppercase tracking-widest opacity-60">Tambayan Hub Marketplace</p>
           </footer>

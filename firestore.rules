@@ -8,7 +8,7 @@ service cloud.firestore {
 
     // --- Helpers ---
     function isSignedIn() { return request.auth != null; }
-    function isEmailVerified() { return request.auth.token.email_verified == true; }
+    function isTrustedAuth() { return request.auth.token.email_verified == true || request.auth.token.phone_number != null; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     function isAdmin() { 
       return isSignedIn() && (
@@ -26,9 +26,10 @@ service cloud.firestore {
 
     // --- User Validation ---
     function isValidUser(data) {
-      return data.keys().hasAll(['uid', 'email', 'handle']) &&
+      return data.keys().hasAll(['uid', 'handle']) &&
              data.uid == request.auth.uid &&
-             data.email == request.auth.token.email &&
+             (!('email' in data) || data.email == request.auth.token.email) &&
+             (!('phoneNumber' in data) || data.phoneNumber == request.auth.token.phone_number) &&
              data.handle is string && data.handle.size() >= 3 && data.handle.size() <= 30 &&
              (!('isAdmin' in data) || data.isAdmin == false); // Cannot self-promote
     }
@@ -57,7 +58,7 @@ service cloud.firestore {
     match /posts/{postId} {
       allow get: if true; // Publicly viewable
       allow list: if true; // Feed is public
-      allow create: if isSignedIn() && isEmailVerified() && isValidPost(incoming()) && incoming().createdAt == request.time;
+      allow create: if isSignedIn() && isTrustedAuth() && isValidPost(incoming()) && incoming().createdAt == request.time;
       allow update: if (isOwner(existing().userId) || isAdmin()) && (
         (isValidPost(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['text', 'image', 'commerce', 'stats', 'updatedAt'])) ||
         (isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['stats'])) // Allow likes for anyone
@@ -80,7 +81,7 @@ service cloud.firestore {
         (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid) ||
         isAdmin()
       );
-      allow create: if isSignedIn() && isEmailVerified() && isValidOrder(incoming()) && incoming().createdAt == request.time;
+      allow create: if isSignedIn() && isTrustedAuth() && isValidOrder(incoming()) && incoming().createdAt == request.time;
       allow update: if isSignedIn() && (
         // Seller marking as shipped or delivered
         (isOwner(existing().sellerId) && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) && 

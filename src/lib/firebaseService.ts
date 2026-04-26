@@ -191,7 +191,7 @@ export const firebaseService = {
       // Fallback for hardcoded admins
       const user = auth.currentUser;
       const hardcodedAdmins = ['shuty0433@gmail.com', 'shuty04g33@gmail.com'];
-      return !!(user && user.email && hardcodedAdmins.includes(user.email) && user.emailVerified);
+      return !!(user && user.email && hardcodedAdmins.includes(user.email));
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, `admins/${uid}`);
     }
