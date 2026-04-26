@@ -8,6 +8,9 @@ import { BottomNav } from './components/BottomNav';
 import { Feed } from './components/Feed';
 import { Profile } from './components/Profile';
 import { AdminDashboard } from './components/AdminDashboard';
+import { Discover } from './components/Discover';
+import { Activity } from './components/Activity';
+import { CreatePost } from './components/CreatePost';
 import { AuthModal } from './components/AuthModal';
 import { CanvasBackground } from './components/CanvasBackground';
 import { doc, getDocFromServer } from 'firebase/firestore';
@@ -48,6 +51,19 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return (
+        <div className="flex flex-col items-center justify-center p-12 text-center h-[50vh]">
+          <p className="text-white/40 mb-4 tracking-widest text-xs uppercase font-bold">Sign in to access this page</p>
+          <button onClick={() => setIsAuthModalOpen(true)} className="btn-primary">Sign In</button>
+        </div>
+      );
+    }
+    return <>{children}</>;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
@@ -80,14 +96,11 @@ const AppContent: React.FC = () => {
             >
               <Routes location={location}>
                 <Route path="/" element={<Feed onOrderClick={handleOrderClick} />} />
+                <Route path="/discover" element={<Discover />} />
+                <Route path="/activity" element={<Activity />} />
+                <Route path="/post" element={<RequireAuth><CreatePost /></RequireAuth>} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="*" element={
-                  <div className="flex flex-col items-center justify-center h-[60vh] text-white/20">
-                    <p className="text-4xl font-black italic">W.I.P</p>
-                    <p className="text-sm">Page under construction</p>
-                  </div>
-                } />
               </Routes>
             </motion.div>
           </AnimatePresence>

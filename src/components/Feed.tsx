@@ -81,6 +81,7 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
           {posts.map((post) => (
             <PostCard 
               key={post.id} 
+              id={post.id}
               user={{ name: post.userName, handle: post.userHandle, avatar: post.userAvatar }}
               content={{ image: post.image, text: post.text }}
               stats={post.stats}

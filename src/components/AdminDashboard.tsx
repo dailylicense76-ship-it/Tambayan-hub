@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   ShieldCheck, 
-  PlusCircle, 
-  BarChart3, 
-  Video, 
-  Image as ImageIcon, 
   Megaphone, 
+  Image as ImageIcon, 
+  Video, 
+  BarChart3, 
+  Users,
   Eye, 
-  Trash2 
+  Trash2,
+  Lock,
+  UserCheck
 } from 'lucide-react';
 import { firebaseService } from '../lib/firebaseService';
 import { auth } from '../lib/firebase';
@@ -22,6 +24,7 @@ export const AdminDashboard: React.FC = () => {
   const [price, setPrice] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [activeTab, setActiveTab] = useState<'ads' | 'users'>('ads');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -79,92 +82,127 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="pb-24 px-4 pt-6">
       <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 bg-brand/20 rounded-2xl">
-          <ShieldCheck className="text-brand" size={28} />
+        <div className="p-3 bg-brand rounded-2xl shadow-lg shadow-brand/40">
+          <ShieldCheck className="text-white" size={24} />
         </div>
         <div>
           <h2 className="text-2xl font-black uppercase tracking-tighter">Boss Panel</h2>
-          <p className="text-xs text-white/40 font-bold uppercase tracking-widest">Post as Official</p>
+          <p className="text-xs text-white/40 font-bold uppercase tracking-widest">Admin Control Center</p>
         </div>
       </div>
 
-      {/* Add Ad Form */}
-      <div className="glass-card p-6 mb-8 border-brand/20">
-        <div className="flex items-center gap-2 mb-6">
-          <PlusCircle size={20} className="text-brand" />
-          <h3 className="font-bold">Inject Global Ad / Video</h3>
-        </div>
+      <div className="flex gap-2 mb-8 glass p-1 rounded-xl">
+        <button 
+          onClick={() => setActiveTab('ads')}
+          className={cn(
+            "flex-1 py-3 rounded-lg text-xs font-bold uppercase tracking-widest transition-all",
+            activeTab === 'ads' ? "bg-brand text-white shadow-lg shadow-brand/20" : "text-white/40 hover:text-white/60"
+          )}
+        >
+          Manage Ads
+        </button>
+        <button 
+          onClick={() => setActiveTab('users')}
+          className={cn(
+            "flex-1 py-3 rounded-lg text-xs font-bold uppercase tracking-widest transition-all",
+            activeTab === 'users' ? "bg-brand text-white shadow-lg shadow-brand/20" : "text-white/40 hover:text-white/60"
+          )}
+        >
+          Manage Users
+        </button>
+      </div>
 
-        <form onSubmit={handleAddAd} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-white/40 uppercase">Content Type</label>
-            <div className="flex gap-2">
-              <button 
-                type="button"
-                onClick={() => setAdType('image')}
-                className={cn(
-                  "flex-1 py-3 glass rounded-xl flex items-center justify-center gap-2 transition-all",
-                  adType === 'image' ? "border-brand bg-brand/10 text-brand" : "text-white/40"
-                )}
-              >
-                <ImageIcon size={18} /> Image
-              </button>
-              <button 
-                type="button"
-                onClick={() => setAdType('video')}
-                className={cn(
-                  "flex-1 py-3 glass rounded-xl flex items-center justify-center gap-2 transition-all",
-                  adType === 'video' ? "border-brand bg-brand/10 text-brand" : "text-white/40"
-                )}
-              >
-                <Video size={18} /> Video
-              </button>
+      {activeTab === 'ads' ? (
+        <div className="glass-card p-6">
+          <div className="flex items-center gap-2 mb-6">
+            <Megaphone className="text-brand" size={20} />
+            <h3 className="font-bold uppercase tracking-widest text-sm">Create Official Ad</h3>
+          </div>
+          
+          <form onSubmit={handleAddAd} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Ad Headline</label>
+              <input 
+                value={adTitle}
+                onChange={(e) => setAdTitle(e.target.value)}
+                placeholder="e.g. Free Shipping this Weekend!" 
+                className="w-full glass bg-white/5 p-4 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand text-sm"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Asset URL</label>
+              <input 
+                value={adUrl}
+                onChange={(e) => setAdUrl(e.target.value)}
+                placeholder="https://..." 
+                className="w-full glass bg-white/5 p-4 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand text-sm"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Type</label>
+                <select 
+                   value={adType}
+                   onChange={(e) => setAdType(e.target.value as 'image' | 'video')}
+                   className="w-full glass bg-white/10 p-4 rounded-xl focus:outline-none text-sm appearance-none"
+                >
+                  <option value="image">Image</option>
+                  <option value="video">Video</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Pricing (Optional)</label>
+                <input 
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="e.g 999" 
+                  className="w-full glass bg-white/5 p-4 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand text-sm"
+                />
+              </div>
+            </div>
+
+            <button type="submit" className="w-full btn-primary mt-4 py-4 flex items-center justify-center gap-2">
+              <Megaphone size={18} />
+              Publish to Global Feed
+            </button>
+          </form>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="glass-card p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <Users className="text-brand" size={20} />
+              <h3 className="font-bold uppercase tracking-widest text-sm">User Management</h3>
+            </div>
+            
+            <div className="space-y-3">
+               <div className="p-4 glass rounded-xl border-amber-500/20 text-amber-500/80 text-[10px] mb-4">
+                <p className="font-bold mb-1 uppercase tracking-widest flex items-center gap-2"><Lock size={12} /> Security Protocol:</p>
+                <p>Firebase client SDKs cannot list all users for security. Use the Firebase Console to manage your <strong>admins</strong> collection and auth users.</p>
+              </div>
+
+              <div className="flex items-center justify-between p-3 glass bg-white/5 rounded-xl">
+                 <div className="flex items-center gap-3">
+                   <img src={auth.currentUser?.photoURL || ''} className="w-8 h-8 rounded-full" alt="" />
+                   <div>
+                     <p className="text-xs font-bold uppercase tracking-widest">Current Admin</p>
+                     <p className="text-[10px] text-white/40">{auth.currentUser?.email}</p>
+                   </div>
+                 </div>
+                 <div className="p-1 px-2 bg-green-500/20 text-green-500 rounded text-[10px] font-bold uppercase tracking-tighter">Verified</div>
+              </div>
             </div>
           </div>
+        </div>
+      )}
 
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Ad Title / Description</label>
-            <input 
-              required
-              value={adTitle}
-              onChange={(e) => setAdTitle(e.target.value)}
-              placeholder="e.g. New Year Sale - 50% Off!" 
-              className="w-full glass bg-white/5 p-4 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand text-sm"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Media URL ({adType === 'video' ? 'MP4' : 'JPG/PNG'})</label>
-            <input 
-              required
-              value={adUrl}
-              onChange={(e) => setAdUrl(e.target.value)}
-              placeholder="https://..." 
-              className="w-full glass bg-white/5 p-4 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand text-sm"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Pricing (Optional)</label>
-            <input 
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="e.g 999" 
-              className="w-full glass bg-white/5 p-4 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand text-sm"
-            />
-          </div>
-
-          <button type="submit" className="w-full btn-primary mt-4 py-4 flex items-center justify-center gap-2">
-            <Megaphone size={18} />
-            Publish to Global Feed
-          </button>
-        </form>
-      </div>
-
-      <div className="p-4 glass rounded-xl border-amber-500/20 text-amber-500/80 text-xs">
-        <p className="font-bold mb-1 uppercase tracking-widest">Admin Notice:</p>
-        <p>To access this panel, your UID must be added to the <code>admins</code> collection in Firebase Console manually by the developer.</p>
+      <div className="mt-8 p-4 glass rounded-xl border-white/5 text-white/20 text-[10px]">
+        <p className="font-bold mb-1 uppercase tracking-widest flex items-center gap-2">System Log:</p>
+        <p>UID: {auth.currentUser?.uid}</p>
+        <p>Database: Enterprise Cluster (asia-southeast1)</p>
       </div>
     </div>
   );

@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { ShoppingBag, Heart, MessageCircle, Share2, MoreHorizontal, Megaphone } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { auth } from '../lib/firebase';
+import { firebaseService } from '../lib/firebaseService';
 
 interface PostProps {
   id: string;
@@ -28,9 +30,41 @@ interface PostProps {
   onOrderClick?: () => void;
 }
 
-export const PostCard: React.FC<PostProps> = ({ user, content, commerce, stats, onOrderClick, mediaType = 'image' }) => {
+export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, stats, onOrderClick, mediaType = 'image' }) => {
+  const [isLiked, setIsLiked] = useState(false);
+  const [orderLoading, setOrderLoading] = useState(false);
+
+  const handleOrder = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      if (onOrderClick) onOrderClick();
+      return;
+    }
+
+    if (window.confirm(`Gusto mo bang i-order ang ${commerce?.itemName} sa halagang ₱${commerce?.price?.toLocaleString()} via COD?`)) {
+      setOrderLoading(true);
+      try {
+        await firebaseService.createOrder({
+          buyerId: currentUser.uid,
+          buyerName: currentUser.displayName,
+          sellerId: 'system',
+          itemName: commerce?.itemName,
+          price: commerce?.price,
+          address: 'Default User Address',
+          postId: id
+        });
+        alert('Order placed successfully! Check your notifications.');
+      } catch (error) {
+        console.error(error);
+        alert('Failed to place order.');
+      } finally {
+        setOrderLoading(false);
+      }
+    }
+  };
+
   return (
-    <article id={`post-${user.handle}`} className={cn(
+    <article id={`post-${id}`} className={cn(
       "glass-card mb-6 overflow-hidden",
       commerce?.isSponsored && "border-brand/40 shadow-brand/10"
     )}>
@@ -92,9 +126,12 @@ export const PostCard: React.FC<PostProps> = ({ user, content, commerce, stats, 
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button className="flex items-center gap-1.5 hover:text-red-500 transition-colors">
-              <Heart size={22} />
-              <span className="text-xs font-medium">{stats.likes}</span>
+            <button 
+              onClick={() => setIsLiked(!isLiked)}
+              className={cn("flex items-center gap-1.5 transition-colors", isLiked ? "text-red-500" : "hover:text-red-500")}
+            >
+              <Heart size={22} fill={isLiked ? "currentColor" : "none"} />
+              <span className="text-xs font-medium">{stats.likes + (isLiked ? 1 : 0)}</span>
             </button>
             <button className="flex items-center gap-1.5 hover:text-brand transition-colors">
               <MessageCircle size={22} />
@@ -123,11 +160,18 @@ export const PostCard: React.FC<PostProps> = ({ user, content, commerce, stats, 
         {commerce?.isSelling && (
           <motion.button 
             whileTap={{ scale: 0.95 }}
-            onClick={onOrderClick}
-            className="w-full btn-primary flex items-center justify-center gap-2"
+            onClick={handleOrder}
+            disabled={orderLoading}
+            className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            <ShoppingBag size={18} />
-            Order via COD
+            {orderLoading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <ShoppingBag size={18} />
+                Order via COD
+              </>
+            )}
           </motion.button>
         )}
       </div>
