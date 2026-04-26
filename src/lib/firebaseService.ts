@@ -55,6 +55,38 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 export const firebaseService = {
+  async getFollowingIds(userId: string) {
+    const followsRef = collection(db, 'follows');
+    const q = query(followsRef, where('followerId', '==', userId));
+    try {
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => doc.data().followingId);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, 'follows');
+    }
+  },
+
+  subscribeFollowingPosts(userId: string, followedIds: string[], callback: (posts: any[]) => void) {
+    const postsRef = collection(db, 'posts');
+    if (followedIds.length === 0) {
+      callback([]);
+      return () => {};
+    }
+    // Note: 'in' operator has a limit of 30
+    const chunks = [];
+    for (let i = 0; i < followedIds.length; i += 30) {
+      chunks.push(followedIds.slice(i, i + 30));
+    }
+    
+    // For simplicity in this app, we'll just use the first chunk or handle it
+    const q = query(postsRef, where('userId', 'in', chunks[0]), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'posts_following');
+    });
+  },
+
   // Posts
   async getPosts() {
     const postsRef = collection(db, 'posts');

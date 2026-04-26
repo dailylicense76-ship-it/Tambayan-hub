@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from './lib/firebase';
@@ -16,6 +16,7 @@ import { AuthModal } from './components/AuthModal';
 import { CanvasBackground } from './components/CanvasBackground';
 import { doc, getDocFromServer } from 'firebase/firestore';
 import { db } from './lib/firebase';
+import { AlertCircle } from 'lucide-react';
 
 const AppContent: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -53,17 +54,35 @@ const AppContent: React.FC = () => {
   };
 
   const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false);
+
     useEffect(() => {
-      if (!user && !loading) {
+      if (!user && !loading && !hasAttemptedAuth) {
         setIsAuthModalOpen(true);
+        setHasAttemptedAuth(true);
       }
-    }, [user, loading]);
+    }, [user, loading, hasAttemptedAuth]);
 
     if (!user) {
       return (
-        <div className="flex flex-col items-center justify-center p-12 text-center h-[50vh]">
-          <p className="text-white/40 mb-4 tracking-widest text-xs uppercase font-bold">Sign in to access this page</p>
-          <button onClick={() => setIsAuthModalOpen(true)} className="btn-primary">Sign In</button>
+        <div className="flex flex-col items-center justify-center p-12 text-center h-[70vh] bg-white">
+          <div className="w-20 h-20 bg-gray-50 rounded-[32px] flex items-center justify-center mb-6 border border-gray-100">
+             <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
+               <AlertCircle size={32} className="text-gray-200" />
+             </motion.div>
+          </div>
+          <p className="text-gray-400 mb-6 tracking-widest text-[10px] uppercase font-black leading-relaxed">
+            Oops! Kelangan mo munang <br/> mag-sign in lods.
+          </p>
+          <button 
+            onClick={() => setIsAuthModalOpen(true)} 
+            className="btn-primary w-full shadow-brand/20"
+          >
+            Sign In Now
+          </button>
+          <Link to="/" className="mt-4 text-[10px] font-black text-gray-300 uppercase tracking-widest hover:text-brand transition-colors">
+            Balik muna ako sa Feed
+          </Link>
         </div>
       );
     }

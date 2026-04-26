@@ -3,19 +3,43 @@ import { PostCard } from './PostCard';
 import { firebaseService } from '../lib/firebaseService';
 import { auth } from '../lib/firebase';
 import { motion } from 'motion/react';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, AlertCircle } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'for-you' | 'following'>('for-you');
+  const [followedIds, setFollowedIds] = useState<string[]>([]);
 
   useEffect(() => {
-    const unsubscribe = firebaseService.subscribePosts((newPosts) => {
-      setPosts(newPosts);
-      setLoading(false);
-    });
+    let unsubscribe: () => void = () => {};
+
+    const setupFeed = async () => {
+      setLoading(true);
+      if (activeTab === 'for-you') {
+        unsubscribe = firebaseService.subscribePosts((newPosts) => {
+          setPosts(newPosts);
+          setLoading(false);
+        });
+      } else {
+        if (auth.currentUser) {
+          const ids = await firebaseService.getFollowingIds(auth.currentUser.uid);
+          setFollowedIds(ids || []);
+          unsubscribe = firebaseService.subscribeFollowingPosts(auth.currentUser.uid, ids || [], (newPosts) => {
+            setPosts(newPosts);
+            setLoading(false);
+          });
+        } else {
+          setPosts([]);
+          setLoading(false);
+        }
+      }
+    };
+
+    setupFeed();
     return () => unsubscribe();
-  }, []);
+  }, [activeTab]);
 
   const seedData = async () => {
     const SAMPLE_POSTS = [
@@ -60,6 +84,28 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
 
   return (
     <div className="pb-24 bg-white min-h-screen">
+      {/* Top Tabs */}
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-100 px-4 flex items-center justify-center gap-8 py-4">
+        <button 
+          onClick={() => setActiveTab('for-you')}
+          className={cn(
+            "text-sm font-black uppercase tracking-widest transition-all",
+            activeTab === 'for-you' ? "text-brand scale-110" : "text-gray-300 hover:text-gray-400"
+          )}
+        >
+          For You
+        </button>
+        <button 
+          onClick={() => setActiveTab('following')}
+          className={cn(
+            "text-sm font-black uppercase tracking-widest transition-all",
+            activeTab === 'following' ? "text-brand scale-110" : "text-gray-300 hover:text-gray-400"
+          )}
+        >
+          Following
+        </button>
+      </div>
+
       {/* Stories / Highlights Bar (TikTok Style) */}
       <div className="px-4 py-8 border-b border-gray-100 flex gap-5 overflow-x-auto hide-scrollbar bg-gray-50/30">
         <div className="flex flex-col items-center gap-2 shrink-0">
@@ -73,20 +119,6 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
           </div>
           <span className="text-[9px] font-black uppercase text-gray-400 tracking-tighter">Flex Ko</span>
         </div>
-        {[
-          { name: 'Boss Degz', img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100' },
-          { name: 'Kano', img: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=100' },
-          { name: 'Chanda', img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=100' },
-          { name: 'Baste', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100' },
-          { name: 'Liza', img: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100' }
-        ].map((story, i) => (
-          <div key={i} className="flex flex-col items-center gap-2 shrink-0">
-            <div className="w-16 h-16 rounded-full border-2 border-brand p-0.5 bg-gradient-to-tr from-brand to-pink-500 shadow-md">
-               <img src={story.img} className="w-full h-full rounded-full object-cover border-2 border-white" alt="" />
-            </div>
-            <span className="text-[9px] font-black uppercase text-gray-400 tracking-tighter">{story.name.split(' ')[0]}</span>
-          </div>
-        ))}
       </div>
 
       <div className="px-4 py-8">
@@ -102,12 +134,32 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
         </div>
 
       {posts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <p className="text-gray-400 mb-4 italic font-bold">No posts found...</p>
-          <button onClick={seedData} className="btn-secondary flex items-center gap-2 border-brand/20 bg-brand/5 text-brand">
-            <PlusCircle size={18} />
-            Seed Initial Posts
-          </button>
+        <div className="flex flex-col items-center justify-center py-24 text-center px-8">
+          <div className="w-20 h-20 bg-gray-50 rounded-[32px] flex items-center justify-center mb-6">
+            {activeTab === 'following' && !auth.currentUser ? (
+              <AlertCircle size={32} className="text-gray-200" />
+            ) : (
+              <PlusCircle size={32} className="text-gray-200" />
+            )}
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-6 leading-relaxed">
+            {activeTab === 'following' && !auth.currentUser 
+              ? "Kelangan mo munang mag-sign in \npara makita ang flex ng tropa mo."
+              : "Walang flex dito sa ngayon..."}
+          </p>
+          
+          {activeTab === 'following' && !auth.currentUser ? (
+            <button 
+              onClick={onOrderClick}
+              className="btn-primary w-full shadow-brand/20"
+            >
+              Sign In to Follow
+            </button>
+          ) : (
+            <p className="text-[9px] font-bold text-gray-200 uppercase tracking-[0.3em]">
+              Maging una sa pag-flex!
+            </p>
+          )}
         </div>
       ) : (
         <div className="space-y-6">

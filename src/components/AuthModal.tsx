@@ -23,16 +23,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
       let result: UserCredential;
       if (provider === 'google') {
         const googleProvider = new GoogleAuthProvider();
+        googleProvider.setCustomParameters({ prompt: 'select_account' });
         result = await signInWithPopup(auth, googleProvider);
       } else if (provider === 'facebook') {
         const facebookProvider = new FacebookAuthProvider();
         result = await signInWithPopup(auth, facebookProvider);
       } else {
-        // Email login logic could go here if needed
         return;
       }
 
-      // Initialize user profile in Firestore
       await firebaseService.saveUserProfile({
         uid: result.user.uid,
         email: result.user.email,
@@ -43,9 +42,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
       });
 
       onSuccess(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login Error:', error);
-      alert('Login failed. Please try again.');
+      if (error.code === 'auth/unauthorized-domain') {
+        alert('Unauthorized Domain: Please add this domain to your Firebase Console > Authentication > Settings > Authorized Domains.');
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        // Silent fail
+      } else {
+        alert(`Login failed: ${error.message || 'Unknown error'}. Please check your connection.`);
+      }
     }
   };
 
@@ -66,8 +71,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             className="fixed inset-0 m-auto w-full max-w-sm h-fit z-[60] glass-card p-8 flex flex-col items-center bg-white border-brand/10 shadow-2xl"
           >
-            <button onClick={onClose} className="absolute top-4 right-4 text-gray-300 hover:text-brand transition-colors">
-              <X size={24} />
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClose();
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-brand transition-all p-3 z-[80] bg-gray-100/50 hover:bg-gray-100 rounded-2xl flex items-center gap-2 group"
+              aria-label="Close modal"
+            >
+              <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Close</span>
+              <X size={20} strokeWidth={3} />
             </button>
 
             <Logo size="lg" className="mb-6" />
