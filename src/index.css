@@ -1,18 +1,32 @@
 @import "tailwindcss";
 
-@theme {
+:root {
   --color-brand: #3b82f6;
   --color-dark: #0f172a;
   --color-glass: rgba(15, 23, 42, 0.7);
   --color-glass-border: rgba(255, 255, 255, 0.1);
-  
+}
+
+@theme {
+  --color-brand: var(--color-brand);
+  --color-dark: var(--color-dark);
+  --color-glass: var(--color-glass);
+  --color-glass-border: var(--color-glass-border);
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
-  body {
-    @apply bg-dark text-white font-sans antialiased overflow-x-hidden;
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
     background-color: #0f172a;
+    color: white;
+  }
+  
+  body {
+    @apply antialiased overflow-x-hidden;
+    font-family: var(--font-sans);
   }
 }
 

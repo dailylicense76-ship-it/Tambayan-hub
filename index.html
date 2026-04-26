@@ -1,75 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambayan Marketplace</title>
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-
-    <div id="canvas-container"></div>
-
-    <div class="app-wrapper">
-        <header class="glass-nav">
-            <h2>Tambayan</h2>
-            <button class="profile-btn glass-btn" onclick="window.location.href='profile.html'">My Dashboard</button>
-        </header>
-
-        <main id="global-feed">
-            <article class="post-card glass-card">
-                <div class="post-header">
-                    <img src="https://ui-avatars.com/api/?name=Boss+Degz&background=3b82f6&color=fff" alt="Avatar" class="avatar">
-                    <div class="user-info">
-                        <h4>Boss Degz</h4>
-                        <span>2 mins ago</span>
-                    </div>
-                </div>
-                
-                <div class="post-content">
-                    <p>Solid nitong bagong mechanical keyboard build ko! Binebenta ko na, paunahan na lang.</p>
-                    <img src="https://images.unsplash.com/photo-1595225476474-87563907a212?w=500" alt="Keyboard Flex" class="post-image">
-                </div>
-
-                <div class="post-footer">
-                    <div class="price-tag">₱ 2,500</div>
-                    <button class="order-btn" onclick="openAuthGate()">Order via COD</button>
-                </div>
-            </article>
-
-             <article class="post-card glass-card">
-                <div class="post-header">
-                    <img src="https://ui-avatars.com/api/?name=Juan+D&background=10b981&color=fff" alt="Avatar" class="avatar">
-                    <div class="user-info">
-                        <h4>Juan Dela Cruz</h4>
-                        <span>1 hr ago</span>
-                    </div>
-                </div>
-                
-                <div class="post-content">
-                    <p>Chill muna ngayong gabi. Kape tayo diyan mga boss!</p>
-                </div>
-            </article>
-        </main>
-
-        <nav class="bottom-nav glass-nav">
-            <button class="nav-item active">Feed</button>
-            <button class="nav-item">Flex Item</button>
-        </nav>
-    </div>
-
-    <dialog id="auth-modal" class="glass-modal">
-        <div class="modal-content">
-            <h3>Bago ka umorder...</h3>
-            <p>Mag-login muna saglit para ma-process natin ang COD details mo, Boss.</p>
-            <button class="social-btn google-btn" onclick="loginWithGoogle()">Continue with Google</button>
-            <button class="social-btn fb-btn" onclick="loginWithFB()">Continue with Facebook</button>
-            <button class="close-btn" onclick="closeAuthGate()">Cancel</button>
-        </div>
-    </dialog>
-
-    <script src="js/app.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/3d-engine.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Google AI Studio App</title>
+  </head>
+  <body style="background-color: #0f172a; margin: 0; color: white;">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
+

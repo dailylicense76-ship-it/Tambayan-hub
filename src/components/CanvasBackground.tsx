@@ -1,26 +1,28 @@
-import React, { useEffect, useState } from 'react';
-import { motion, useSpring, useTransform } from 'motion/react';
+import React, { useEffect } from 'react';
+import { motion, useSpring, useTransform, useMotionValue } from 'motion/react';
 
 export const CanvasBackground: React.FC = () => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({
-        x: (e.clientX / window.innerWidth) - 0.5,
-        y: (e.clientY / window.innerHeight) - 0.5,
-      });
+      mouseX.set((e.clientX / window.innerWidth) - 0.5);
+      mouseY.set((e.clientY / window.innerHeight) - 0.5);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+  }, [mouseX, mouseY]);
 
-  const smoothX = useSpring(mousePosition.x, { damping: 20, stiffness: 100 });
-  const smoothY = useSpring(mousePosition.y, { damping: 20, stiffness: 100 });
+  const smoothX = useSpring(mouseX, { damping: 20, stiffness: 100 });
+  const smoothY = useSpring(mouseY, { damping: 20, stiffness: 100 });
 
   const moveX = useTransform(smoothX, [-0.5, 0.5], [-50, 50]);
   const moveY = useTransform(smoothY, [-0.5, 0.5], [-50, 50]);
+
+  const moveXReverse = useTransform(moveX, (v: number) => v * -1.5);
+  const moveYReverse = useTransform(moveY, (v: number) => v * -1.5);
 
   return (
     <div id="canvas-container" className="fixed inset-0 pointer-events-none overflow-hidden z-[-1]">
@@ -30,8 +32,8 @@ export const CanvasBackground: React.FC = () => {
       />
       <motion.div 
         style={{ 
-          x: useTransform(moveX, (v) => v * -1.5), 
-          y: useTransform(moveY, (v) => v * -1.5) 
+          x: moveXReverse, 
+          y: moveYReverse 
         }}
         className="bg-glow bottom-[-10%] right-[-10%] bg-blue-600/30" 
       />
