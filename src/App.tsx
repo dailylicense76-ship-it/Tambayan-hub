@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { auth } from './lib/firebase';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { Feed } from './components/Feed';
@@ -8,26 +10,55 @@ import { Profile } from './components/Profile';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AuthModal } from './components/AuthModal';
 import { CanvasBackground } from './components/CanvasBackground';
+import { doc, getDocFromServer } from 'firebase/firestore';
+import { db } from './lib/firebase';
 
 const AppContent: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
 
+  useEffect(() => {
+    // Validate connection to Firestore as per instructions
+    const testConnection = async () => {
+      try {
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } catch (error) {
+        if(error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration.");
+        }
+      }
+    };
+    testConnection();
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
   const handleOrderClick = () => {
-    if (!isAuthenticated) {
+    if (!user) {
       setIsAuthModalOpen(true);
     } else {
       // In a real app, this would show the COD Order Form
-      alert('Order Form logic goes here! (Authenticated)');
+      alert('Coming Soon: COD Order Confirmation for ' + user.displayName);
     }
   };
 
-  const handleAuthSuccess = (provider: string) => {
-    console.log(`Authenticated with ${provider}`);
-    setIsAuthenticated(true);
-    setIsAuthModalOpen(false);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-dark flex items-center justify-center">
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+          transition={{ repeat: Infinity, duration: 1.5 }}
+          className="w-12 h-12 bg-brand rounded-xl shadow-lg shadow-brand/40"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen flex justify-center">
@@ -68,7 +99,7 @@ const AppContent: React.FC = () => {
       <AuthModal 
         isOpen={isAuthModalOpen} 
         onClose={() => setIsAuthModalOpen(false)} 
-        onSuccess={handleAuthSuccess}
+        onSuccess={() => setIsAuthModalOpen(false)}
       />
     </div>
   );

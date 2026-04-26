@@ -1,0 +1,97 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "handle": { "type": "string" },
+        "isAdmin": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "handle"]
+    },
+    "Post": {
+      "title": "Marketplace Post",
+      "description": "A social post or marketplace item",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userHandle": { "type": "string" },
+        "userAvatar": { "type": "string" },
+        "image": { "type": "string" },
+        "text": { "type": "string" },
+        "mediaType": { "type": "string", "enum": ["image", "video"] },
+        "commerce": {
+          "type": "object",
+          "properties": {
+            "price": { "type": "number" },
+            "itemName": { "type": "string" },
+            "isSelling": { "type": "boolean" },
+            "isSponsored": { "type": "boolean" }
+          }
+        },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "likes": { "type": "number" },
+            "comments": { "type": "number" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "image", "text", "createdAt"]
+    },
+    "Order": {
+      "title": "COD Order",
+      "description": "A purchase request for an item",
+      "type": "object",
+      "properties": {
+        "buyerId": { "type": "string" },
+        "buyerName": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "postId": { "type": "string" },
+        "itemName": { "type": "string" },
+        "price": { "type": "number" },
+        "address": { "type": "string" },
+        "note": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "shipped", "delivered", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["buyerId", "sellerId", "postId", "address", "status", "createdAt"]
+    },
+    "Admin": {
+      "title": "Administrator",
+      "description": "Users with admin privileges",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" }
+      },
+      "required": ["uid"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "posts/{postId}": {
+      "schema": "Post",
+      "description": "Social and commerce posts"
+    },
+    "orders/{orderId}": {
+      "schema": "Order",
+      "description": "Purchase orders"
+    },
+    "admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Admin access control list"
+    }
+  }
+}

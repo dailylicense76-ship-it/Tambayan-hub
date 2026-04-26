@@ -1,32 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Package, Grid, CheckCircle2, Truck, AlertCircle, ShieldCheck } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Package, Grid, CheckCircle2, Truck, AlertCircle, ShieldCheck, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { auth } from '../lib/firebase';
+import { signOut } from 'firebase/auth';
+import { firebaseService } from '../lib/firebaseService';
 import { cn } from '../lib/utils';
 
 export const Profile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'flex' | 'orders'>('flex');
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const user = auth.currentUser;
+  const navigate = useNavigate();
 
-  const orders = [
-    {
-      id: 'ORD-8821',
-      buyer: 'John Santos',
-      item: 'Air Jordan 1 Retro High',
-      address: '123 Maginhawa St, Quezon City',
-      note: 'Please call before arriving.',
-      status: 'pending',
-      price: 15500
-    },
-    {
-      id: 'ORD-7742',
-      buyer: 'Maria Clara',
-      item: 'Mechanical Keyboard Kit',
-      address: 'BGC, Taguig Tower 1',
-      note: '',
-      status: 'shipped',
-      price: 4800
+  useEffect(() => {
+    if (!user) {
+      navigate('/');
+      return;
     }
-  ];
+
+    const loadData = async () => {
+      const fetchedOrders = await firebaseService.getOrders(user.uid, true);
+      setOrders(fetchedOrders || []);
+      
+      const adminStatus = await firebaseService.checkIsAdmin(user.uid);
+      setIsAdmin(!!adminStatus);
+    };
+
+    loadData();
+  }, [user, navigate]);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    navigate('/');
+  };
+
+  const handleUpdateStatus = async (orderId: string) => {
+    await firebaseService.updateOrderStatus(orderId, 'shipped');
+    const updatedOrders = await firebaseService.getOrders(user!.uid, true);
+    setOrders(updatedOrders || []);
+  };
+
+  if (!user) return null;
 
   return (
     <div className="pb-24">
@@ -35,7 +51,7 @@ export const Profile: React.FC = () => {
         <div className="relative mb-4">
           <div className="w-24 h-24 rounded-full border-4 border-brand p-1">
             <img 
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" 
+              src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
               className="w-full h-full rounded-full bg-white/10" 
               alt="Avatar"
               referrerPolicy="no-referrer"
@@ -50,30 +66,22 @@ export const Profile: React.FC = () => {
           </motion.div>
         </div>
         
-        <h2 className="text-xl font-bold">Sneaker King</h2>
-        <p className="text-white/50 text-sm mb-4">@sneaker_king</p>
+        <h2 className="text-xl font-bold">{user.displayName}</h2>
+        <p className="text-white/50 text-sm mb-4">@{user.email?.split('@')[0]}</p>
 
-        <Link to="/admin" className="w-full btn-secondary text-sm mb-3 flex items-center justify-center gap-2 border-brand/20 bg-brand/5">
-          <ShieldCheck size={18} className="text-brand" />
-          Boss Panel (Admin)
-        </Link>
+        {isAdmin && (
+          <Link to="/admin" className="w-full btn-secondary text-sm mb-3 flex items-center justify-center gap-2 border-brand/20 bg-brand/5">
+            <ShieldCheck size={18} className="text-brand" />
+            Boss Panel (Admin)
+          </Link>
+        )}
         
-        <div className="flex gap-8 mb-6">
-          <div className="text-center">
-            <p className="font-bold">2.4k</p>
-            <p className="text-[10px] uppercase text-white/40 font-bold tracking-widest">Followers</p>
-          </div>
-          <div className="text-center">
-            <p className="font-bold">15</p>
-            <p className="text-[10px] uppercase text-white/40 font-bold tracking-widest">Fulfilling</p>
-          </div>
-          <div className="text-center">
-            <p className="font-bold">142</p>
-            <p className="text-[10px] uppercase text-white/40 font-bold tracking-widest">Sales</p>
-          </div>
+        <div className="flex gap-4 w-full mb-6">
+          <button className="flex-1 btn-secondary text-sm">Edit Profile</button>
+          <button onClick={handleLogout} className="btn-secondary p-3 text-red-500">
+            <LogOut size={20} />
+          </button>
         </div>
-
-        <button className="w-full btn-secondary text-sm">Edit Profile</button>
       </div>
 
       {/* Tabs */}
@@ -104,18 +112,24 @@ export const Profile: React.FC = () => {
       <div className="p-4">
         {activeTab === 'flex' ? (
           <div className="grid grid-cols-3 gap-2">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="aspect-square glass rounded-lg overflow-hidden bg-white/5 animate-pulse" />
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="aspect-square glass rounded-lg flex items-center justify-center">
+                <Grid size={24} className="opacity-10" />
+              </div>
             ))}
           </div>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => (
+            {orders.length === 0 ? (
+              <div className="py-10 text-center text-white/20">
+                <p>No orders to fulfill yet.</p>
+              </div>
+            ) : orders.map((order) => (
               <div key={order.id} className="glass-card p-4 space-y-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="font-bold text-sm text-brand">{order.id}</h4>
-                    <p className="text-xs text-white/50">{order.buyer}</p>
+                    <h4 className="font-bold text-sm text-brand">{order.id.slice(0, 8)}</h4>
+                    <p className="text-xs text-white/50">{order.buyerName}</p>
                   </div>
                   <div className={cn(
                     "px-2 py-1 rounded text-[10px] font-bold uppercase tracking-tighter",
@@ -126,10 +140,12 @@ export const Profile: React.FC = () => {
                 </div>
 
                 <div className="flex gap-3">
-                  <div className="w-12 h-12 glass rounded-lg" />
+                  <div className="w-12 h-12 glass rounded-lg flex items-center justify-center">
+                    <Package size={20} className="opacity-20" />
+                  </div>
                   <div>
-                    <p className="text-sm font-medium">{order.item}</p>
-                    <p className="text-xs font-bold text-brand">₱{order.price.toLocaleString()}</p>
+                    <p className="text-sm font-medium">{order.itemName}</p>
+                    <p className="text-xs font-bold text-brand">₱{order.price?.toLocaleString()}</p>
                   </div>
                 </div>
 
@@ -146,9 +162,14 @@ export const Profile: React.FC = () => {
                   )}
                 </div>
 
-                <button className="w-full btn-primary py-2 text-xs">
-                  {order.status === 'pending' ? 'Mark as Shipped' : 'View Tracking'}
-                </button>
+                {order.status === 'pending' && (
+                  <button 
+                    onClick={() => handleUpdateStatus(order.id)}
+                    className="w-full btn-primary py-2 text-xs"
+                  >
+                    Mark as Shipped
+                  </button>
+                )}
               </div>
             ))}
           </div>

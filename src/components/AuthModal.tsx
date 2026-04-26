@@ -1,14 +1,53 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Mail, Facebook, Github } from 'lucide-react';
+import { X, Mail, Facebook } from 'lucide-react';
+import { auth } from '../lib/firebase';
+import { 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  FacebookAuthProvider,
+  UserCredential
+} from 'firebase/auth';
+import { firebaseService } from '../lib/firebaseService';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (provider: string) => void;
+  onSuccess: (credential: UserCredential) => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const handleLogin = async (provider: 'google' | 'facebook' | 'email') => {
+    try {
+      let result: UserCredential;
+      if (provider === 'google') {
+        const googleProvider = new GoogleAuthProvider();
+        result = await signInWithPopup(auth, googleProvider);
+      } else if (provider === 'facebook') {
+        const facebookProvider = new FacebookAuthProvider();
+        result = await signInWithPopup(auth, facebookProvider);
+      } else {
+        // Email login logic could go here if needed
+        return;
+      }
+
+      // Initialize user profile in Firestore
+      await firebaseService.saveUserProfile({
+        uid: result.user.uid,
+        email: result.user.email,
+        displayName: result.user.displayName,
+        photoURL: result.user.photoURL,
+        handle: result.user.email?.split('@')[0] || `user_${result.user.uid.slice(0, 5)}`,
+        createdAt: new Date().toISOString()
+      });
+
+      onSuccess(result);
+    } catch (error) {
+      console.error('Login Error:', error);
+      alert('Login failed. Please try again.');
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -41,7 +80,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
             <div className="w-full space-y-3">
               <button 
-                onClick={() => onSuccess('Google')}
+                onClick={() => handleLogin('google')}
                 className="w-full glass hover:bg-white/10 flex items-center justify-center gap-3 py-3 rounded-xl transition-all"
               >
                 <img 
@@ -54,7 +93,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               </button>
               
               <button 
-                onClick={() => onSuccess('Facebook')}
+                onClick={() => handleLogin('facebook')}
                 className="w-full bg-[#1877F2] hover:bg-[#1877F2]/90 flex items-center justify-center gap-3 py-3 rounded-xl transition-all"
               >
                 <Facebook size={20} fill="white" />
@@ -62,11 +101,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               </button>
 
               <button 
-                onClick={() => onSuccess('Email')}
-                className="w-full glass hover:bg-white/10 flex items-center justify-center gap-3 py-3 rounded-xl transition-all"
+                disabled
+                className="w-full glass opacity-50 flex items-center justify-center gap-3 py-3 rounded-xl transition-all cursor-not-allowed"
               >
                 <Mail size={20} />
-                Continue with Email
+                Continue with Email (Coming Soon)
               </button>
             </div>
 

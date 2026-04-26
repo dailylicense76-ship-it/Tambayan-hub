@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isEmailVerified() { return request.auth.token.email_verified == true; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+
+    // --- User Validation ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'handle']) &&
+             data.uid == request.auth.uid &&
+             data.email == request.auth.token.email &&
+             data.handle is string && data.handle.size() >= 3 && data.handle.size() <= 30 &&
+             (!('isAdmin' in data) || data.isAdmin == false); // Cannot self-promote
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if false; // No blanket user listing
+      allow create: if isSignedIn() && isValidUser(incoming()) && incoming().createdAt == request.time;
+      allow update: if isOwner(userId) && isValidUser(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'handle', 'updatedAt'])
+      );
+    }
+
+    // --- Post Validation ---
+    function isValidPost(data) {
+      return data.keys().hasAll(['userId', 'image', 'text', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.image is string && data.image.size() <= 1000 &&
+             data.text is string && data.text.size() <= 1000 &&
+             (!('commerce' in data) || (
+               data.commerce.keys().hasAll(['isSelling']) &&
+               (!('price' in data.commerce) || (data.commerce.price is number && data.commerce.price >= 0))
+             ));
+    }
+
+    match /posts/{postId} {
+      allow get: if true; // Publicly viewable
+      allow list: if true; // Feed is public
+      allow create: if isSignedIn() && isEmailVerified() && isValidPost(incoming()) && incoming().createdAt == request.time;
+      allow update: if (isOwner(existing().userId) || isAdmin()) && isValidPost(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['text', 'image', 'commerce', 'stats'])
+      );
+      allow delete: if isOwner(existing().userId) || isAdmin();
+    }
+
+    // --- Order Validation ---
+    function isValidOrder(data) {
+      return data.keys().hasAll(['buyerId', 'sellerId', 'postId', 'address', 'status', 'createdAt']) &&
+             data.buyerId == request.auth.uid &&
+             data.status == 'pending' &&
+             data.address is string && data.address.size() > 0 && data.address.size() <= 500 &&
+             exists(/databases/$(database)/documents/posts/$(data.postId));
+    }
+
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && (isOwner(existing().buyerId) || isOwner(existing().sellerId) || isAdmin());
+      allow list: if isSignedIn() && (
+        (request.query.limit <= 50 && (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid)) ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && isEmailVerified() && isValidOrder(incoming()) && incoming().createdAt == request.time;
+      allow update: if isSignedIn() && (
+        // Seller marking as shipped or delivered
+        (isOwner(existing().sellerId) && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) && 
+         (incoming().status in ['shipped', 'delivered', 'cancelled'])) ||
+        // Buyer cancelling
+        (isOwner(existing().buyerId) && existing().status == 'pending' && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) && 
+         incoming().status == 'cancelled') ||
+        isAdmin()
+      );
+    }
+
+    // --- Admin ACL ---
+    match /admins/{userId} {
+      allow read: if isSignedIn();
+      allow write: if false; // System managed or manual dev console
+    }
+  }
+}

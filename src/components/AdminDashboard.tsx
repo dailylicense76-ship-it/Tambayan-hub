@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   ShieldCheck, 
@@ -10,27 +10,71 @@ import {
   Eye, 
   Trash2 
 } from 'lucide-react';
+import { firebaseService } from '../lib/firebaseService';
+import { auth } from '../lib/firebase';
 import { cn } from '../lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 export const AdminDashboard: React.FC = () => {
   const [adTitle, setAdTitle] = useState('');
   const [adUrl, setAdUrl] = useState('');
   const [adType, setAdType] = useState<'image' | 'video'>('image');
   const [price, setPrice] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const navigate = useNavigate();
 
-  const stats = [
-    { label: 'Total Users', value: '1,284', icon: <BarChart3 className="text-blue-400" /> },
-    { label: 'Active Ads', value: '12', icon: <Megaphone className="text-amber-400" /> },
-    { label: 'Daily Revenue', value: '₱42,500', icon: <ShieldCheck className="text-green-400" /> },
-  ];
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (auth.currentUser) {
+        const status = await firebaseService.checkIsAdmin(auth.currentUser.uid);
+        if (!status) {
+          alert('Access Denied. You are not an admin.');
+          navigate('/');
+        } else {
+          setIsAdmin(true);
+        }
+      } else {
+        navigate('/');
+      }
+      setLoading(false);
+    };
+    checkAdmin();
+  }, [navigate]);
 
-  const handleAddAd = (e: React.FormEvent) => {
+  const handleAddAd = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Ad "${adTitle}" (${adType}) added to Global Feed!`);
-    setAdTitle('');
-    setAdUrl('');
-    setPrice('');
+    if (!auth.currentUser) return;
+
+    try {
+      await firebaseService.createPost({
+        userId: auth.currentUser.uid,
+        userName: 'Tambayan Admin',
+        userHandle: 'admin',
+        userAvatar: auth.currentUser.photoURL || '',
+        mediaType: adType,
+        image: adUrl,
+        text: adTitle,
+        commerce: {
+          price: parseFloat(price) || 0,
+          itemName: adTitle,
+          isSelling: !!price,
+          isSponsored: true
+        }
+      });
+
+      alert(`Ad "${adTitle}" published to Global Feed!`);
+      setAdTitle('');
+      setAdUrl('');
+      setPrice('');
+    } catch (error) {
+      console.error(error);
+      alert('Failed to publish ad. Check console.');
+    }
   };
+
+  if (loading) return <div className="p-10 text-center">Checking credentials...</div>;
+  if (!isAdmin) return null;
 
   return (
     <div className="pb-24 px-4 pt-6">
@@ -40,29 +84,8 @@ export const AdminDashboard: React.FC = () => {
         </div>
         <div>
           <h2 className="text-2xl font-black uppercase tracking-tighter">Boss Panel</h2>
-          <p className="text-xs text-white/40 font-bold uppercase tracking-widest">Admin Control Center</p>
+          <p className="text-xs text-white/40 font-bold uppercase tracking-widest">Post as Official</p>
         </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 mb-8">
-        {stats.map((stat, i) => (
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.1 }}
-            key={stat.label} 
-            className="glass-card p-4 flex items-center justify-between"
-          >
-            <div>
-              <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">{stat.label}</p>
-              <p className="text-xl font-bold">{stat.value}</p>
-            </div>
-            <div className="p-3 bg-white/5 rounded-xl">
-              {stat.icon}
-            </div>
-          </motion.div>
-        ))}
       </div>
 
       {/* Add Ad Form */}
@@ -124,42 +147,24 @@ export const AdminDashboard: React.FC = () => {
           <div className="space-y-2">
             <label className="text-xs font-bold text-white/40 uppercase tracking-widest">Pricing (Optional)</label>
             <input 
+              type="number"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              placeholder="e.g ₱999" 
+              placeholder="e.g 999" 
               className="w-full glass bg-white/5 p-4 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand text-sm"
             />
           </div>
 
           <button type="submit" className="w-full btn-primary mt-4 py-4 flex items-center justify-center gap-2">
             <Megaphone size={18} />
-            Publish Ads to Global Feed
+            Publish to Global Feed
           </button>
         </form>
       </div>
 
-      {/* Manage Existing Posts */}
-      <h3 className="font-bold mb-4 px-2">Active Advertisements</h3>
-      <div className="space-y-3">
-        {[1, 2].map((i) => (
-          <div key={i} className="glass-card p-3 flex items-center gap-4">
-            <div className="w-16 h-16 bg-white/5 rounded-lg shrink-0 overflow-hidden">
-               <div className="w-full h-full flex items-center justify-center">
-                 {i === 1 ? <Video size={20} className="text-white/20" /> : <ImageIcon size={20} className="text-white/20" /> }
-               </div>
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold">Featured Gadget {i}</p>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="flex items-center gap-1 text-[10px] text-white/40"><Eye size={10} /> 1.2k</span>
-                <span className="text-[10px] text-brand uppercase font-black italic">Active</span>
-              </div>
-            </div>
-            <button className="p-2 text-white/20 hover:text-red-500 transition-colors">
-              <Trash2 size={18} />
-            </button>
-          </div>
-        ))}
+      <div className="p-4 glass rounded-xl border-amber-500/20 text-amber-500/80 text-xs">
+        <p className="font-bold mb-1 uppercase tracking-widest">Admin Notice:</p>
+        <p>To access this panel, your UID must be added to the <code>admins</code> collection in Firebase Console manually by the developer.</p>
       </div>
     </div>
   );
