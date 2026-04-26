@@ -16,6 +16,7 @@ import {
   updateDoc
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import imageCompression from 'browser-image-compression';
 
 export enum OperationType {
   CREATE = 'create',
@@ -402,10 +403,27 @@ export const firebaseService = {
   },
 
   async uploadFile(file: File, folder: string = 'posts') {
-    const fileName = `${Date.now()}_${file.name}`;
+    let fileToUpload = file;
+    
+    // Compress image to speed up upload
+    if (file.type.startsWith('image/')) {
+      try {
+        const options = {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 1080,
+          useWebWorker: true
+        };
+        fileToUpload = await imageCompression(file, options);
+      } catch (error) {
+        console.error('Compression Error:', error);
+        // proceed with original if compression fails
+      }
+    }
+
+    const fileName = `${Date.now()}_${fileToUpload.name}`;
     const storageRef = ref(storage, `${folder}/${fileName}`);
     try {
-      const snapshot = await uploadBytes(storageRef, file);
+      const snapshot = await uploadBytes(storageRef, fileToUpload);
       return await getDownloadURL(snapshot.ref);
     } catch (error) {
       console.error('Upload Error:', error);
