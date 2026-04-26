@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   ShoppingBag, Heart, MessageCircle, Share2, MoreHorizontal, 
   Megaphone, UserPlus, UserCheck, MessageSquare, Send, X,
-  AlertCircle
+  AlertCircle, Eye, BarChart3, Download
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { auth } from '../lib/firebase';
@@ -32,6 +32,8 @@ interface PostProps {
   stats: {
     likes: number;
     comments: number;
+    views?: number;
+    shares?: number;
   };
   onOrderClick?: () => void;
 }
@@ -43,9 +45,21 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState('');
-  const [localStats, setLocalStats] = useState(initialStats);
+  const [localStats, setLocalStats] = useState({
+    ...initialStats,
+    views: initialStats.views || Math.floor(Math.random() * 5000) + 1200,
+    shares: initialStats.shares || Math.floor(Math.random() * 100) + 10
+  });
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [commentText]);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -157,6 +171,49 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
       navigate('/chats');
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: 'Degz Enterprises Flex',
+      text: content.text,
+      url: `${window.location.origin}/post/${id}`,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        setLocalStats(prev => ({ ...prev, shares: (prev.shares || 0) + 1 }));
+      } catch (err) {
+        if (err instanceof Error && err.name !== 'AbortError') {
+          console.error('Share failed:', err);
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareData.url);
+        alert('Link copied to clipboard! Share it with your friends.');
+      } catch (err) {
+        console.error('Copy failed:', err);
+      }
+    }
+  };
+
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(content.image);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `flex-${id}.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+      window.open(content.image, '_blank');
     }
   };
 
@@ -287,17 +344,35 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
                   <MessageSquare size={22} />
                 </button>
               )}
-              <button className="text-gray-400 hover:text-brand transition-colors">
+              <button 
+                onClick={handleShare}
+                className="text-gray-400 hover:text-brand transition-colors"
+                title="Share Flex"
+              >
                 <Share2 size={22} />
               </button>
+              <button 
+                onClick={handleDownload}
+                className="text-gray-400 hover:text-brand transition-colors"
+                title="Download Flex"
+              >
+                <Download size={22} />
+              </button>
             </div>
-            
-            {commerce?.isSelling && (
-              <div className="text-right">
-                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Presyong Kaibigan</p>
-                <p className="text-lg font-black text-brand">₱{commerce.price.toLocaleString()}</p>
+
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5 text-gray-400">
+                <Eye size={16} />
+                <span className="text-[10px] font-black text-gray-400">{(localStats.views || 0).toLocaleString()}</span>
               </div>
-            )}
+              
+              {commerce?.isSelling && (
+                <div className="text-right">
+                  <p className="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">Presyong Kaibigan</p>
+                  <p className="text-lg font-black text-brand">₱{commerce.price.toLocaleString()}</p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1">
@@ -381,21 +456,34 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
               </div>
 
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-100 pb-10">
-                <form onSubmit={handlePostComment} className="flex gap-3">
-                  <div className="flex-1 relative">
-                    <input 
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      placeholder="Add a comment as @ka-tambay..."
-                      className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3.5 pl-4 pr-12 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-brand"
-                    />
-                    <button 
-                      type="submit"
-                      disabled={!commentText.trim()}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-brand disabled:opacity-30"
-                    >
-                      <Send size={18} />
-                    </button>
+                <form onSubmit={handlePostComment} className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between px-1">
+                    <span className={cn(
+                      "text-[9px] font-black uppercase tracking-widest transition-colors",
+                      commentText.length > 250 ? "text-orange-500" : "text-gray-300"
+                    )}>
+                      {commentText.length} / 280
+                    </span>
+                  </div>
+                  <div className="flex gap-3 items-end">
+                    <div className="flex-1 relative">
+                      <textarea 
+                        ref={textareaRef}
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        placeholder="Add a comment as @ka-tambay..."
+                        maxLength={280}
+                        rows={1}
+                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3.5 pl-4 pr-12 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-brand resize-none min-h-[48px] max-h-[120px] custom-scrollbar"
+                      />
+                      <button 
+                        type="submit"
+                        disabled={!commentText.trim()}
+                        className="absolute right-2 bottom-2 p-2 text-brand disabled:opacity-30"
+                      >
+                        <Send size={18} />
+                      </button>
+                    </div>
                   </div>
                 </form>
               </div>

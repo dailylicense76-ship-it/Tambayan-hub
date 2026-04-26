@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Camera, Tag, ShoppingBag, X, Check, Upload, Play, Film, AlertCircle, Loader2 } from 'lucide-react';
+import { Camera, Tag, ShoppingBag, X, Check, Upload, Play, Film, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { firebaseService } from '../lib/firebaseService';
+import { geminiService } from '../services/geminiService';
 import { auth } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -123,7 +124,20 @@ export const CreatePost: React.FC = () => {
 
         {/* Text/Desc Area */}
         <div className="space-y-3">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">Say something about your flex</label>
+          <div className="flex items-center justify-between px-1">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Say something about your flex</label>
+            <button 
+              type="button"
+              onClick={async () => {
+                const aiCaption = await geminiService.generateCaption(text);
+                setText(aiCaption);
+              }}
+              className="flex items-center gap-1.5 text-[10px] font-black text-brand uppercase tracking-widest hover:opacity-70 transition-opacity bg-brand/5 px-3 py-1.5 rounded-xl border border-brand/10"
+            >
+              <Sparkles size={12} />
+              AI Flex Help
+            </button>
+          </div>
           <textarea 
             value={text}
             onChange={(e) => setText(e.target.value)}

@@ -106,11 +106,11 @@ const AppContent: React.FC = () => {
       {/* 3D Background */}
       <CanvasBackground />
 
-      {/* Mobile Wrapper */}
-      <div className="w-full max-w-[480px] min-h-screen glass-card shadow-brand/10 border-x border-white/5 relative overflow-hidden flex flex-col">
-        <Navbar />
+      {/* Responsive Wrapper */}
+      <div className="w-full min-h-screen bg-white md:bg-transparent shadow-brand/10 md:border-x border-white/5 relative overflow-hidden flex flex-col md:max-w-3xl lg:max-w-4xl mx-auto md:my-4 md:h-[calc(100vh-2rem)] md:rounded-[40px] md:glass-card">
+        <Navbar onAuthClick={() => setIsAuthModalOpen(true)} />
         
-        <main className="flex-1 overflow-y-auto hide-scrollbar">
+        <main className="flex-1 overflow-y-auto custom-scrollbar md:px-4 pb-32">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -130,12 +130,12 @@ const AppContent: React.FC = () => {
               </Routes>
             </motion.div>
           </AnimatePresence>
-        </main>
 
-        <footer className="mt-20 p-8 text-center text-white/10 border-t border-white/5 space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-[.3em] font-mono">&copy; 2026 DEGZ ENTERPRISES</p>
-          <p className="text-[8px] font-bold uppercase tracking-widest">Licensed to Tambayan Hub Marketplace</p>
-        </footer>
+          <footer className="mt-12 p-8 text-center text-gray-300 border-t border-gray-100 space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80">DEGZ FLEX HUB &copy; 2026</p>
+            <p className="text-[8px] font-bold uppercase tracking-widest opacity-60">Licensed to Tambayan Hub Marketplace</p>
+          </footer>
+        </main>
 
         <BottomNav />
       </div>

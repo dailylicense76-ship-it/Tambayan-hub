@@ -122,16 +122,18 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
       </div>
 
       <div className="px-4 py-8">
-        <div className="flex gap-4 mb-10 overflow-x-auto hide-scrollbar pb-2">
-          {['All', 'Sneakers', 'Tech', 'Fashion', 'Art', 'Collectibles'].map((cat) => (
-            <button 
-              key={cat} 
-              className="whitespace-nowrap bg-gray-50 text-gray-400 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-brand hover:text-white transition-all shadow-sm border border-gray-100"
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        {posts.length > 0 && (
+          <div className="flex gap-4 mb-10 overflow-x-auto hide-scrollbar pb-2">
+            {Array.from(new Set(['All', ...posts.flatMap(p => p.text?.match(/#[a-zA-Z0-9]+/g) || []).map(t => t.replace('#', ''))])).slice(0, 8).map((cat) => (
+              <button 
+                key={cat} 
+                className="whitespace-nowrap bg-gray-50 text-gray-400 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-brand hover:text-white transition-all shadow-sm border border-gray-100"
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
 
       {posts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center px-8">
