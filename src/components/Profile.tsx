@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Package, Grid, CheckCircle2, Truck, AlertCircle } from 'lucide-react';
+import { Package, Grid, CheckCircle2, Truck, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 
 export const Profile: React.FC = () => {
@@ -51,6 +52,11 @@ export const Profile: React.FC = () => {
         
         <h2 className="text-xl font-bold">Sneaker King</h2>
         <p className="text-white/50 text-sm mb-4">@sneaker_king</p>
+
+        <Link to="/admin" className="w-full btn-secondary text-sm mb-3 flex items-center justify-center gap-2 border-brand/20 bg-brand/5">
+          <ShieldCheck size={18} className="text-brand" />
+          Boss Panel (Admin)
+        </Link>
         
         <div className="flex gap-8 mb-6">
           <div className="text-center">

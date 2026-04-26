@@ -24,6 +24,29 @@ const SAMPLE_POSTS = [
     }
   },
   {
+    id: 'ad-1',
+    user: {
+      name: 'Tambayan Official',
+      handle: 'tambayan_ads',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
+    },
+    content: {
+      image: 'https://assets.mixkit.co/videos/preview/mixkit-shopping-mall-escalator-4354-large.mp4',
+      text: 'Experience the new way to shop. Direct from sellers, delivered via COD. Join the marketplace today! #Marketplace #COD',
+    },
+    mediaType: 'video' as const,
+    commerce: {
+      price: 0,
+      itemName: 'Platform Ad',
+      isSelling: false,
+      isSponsored: true,
+    },
+    stats: {
+      likes: 15200,
+      comments: 340,
+    }
+  },
+  {
     id: '2',
     user: {
       name: 'Artsy Jace',

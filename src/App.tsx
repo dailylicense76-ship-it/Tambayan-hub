@@ -5,6 +5,7 @@ import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { Feed } from './components/Feed';
 import { Profile } from './components/Profile';
+import { AdminDashboard } from './components/AdminDashboard';
 import { AuthModal } from './components/AuthModal';
 import { CanvasBackground } from './components/CanvasBackground';
 
@@ -49,6 +50,7 @@ const AppContent: React.FC = () => {
               <Routes location={location}>
                 <Route path="/" element={<Feed onOrderClick={handleOrderClick} />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="*" element={
                   <div className="flex flex-col items-center justify-center h-[60vh] text-white/20">
                     <p className="text-4xl font-black italic">W.I.P</p>
