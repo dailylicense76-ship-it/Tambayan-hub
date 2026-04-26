@@ -54,12 +54,54 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
   const videoRef = useRef<HTMLVideoElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const [showHeartPattern, setShowHeartPattern] = useState(false);
+  const lastClickTime = useRef(0);
+
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [commentText]);
+
+  useEffect(() => {
+    if (mediaType !== 'video' || !videoRef.current) return;
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            videoRef.current?.play().catch(() => {
+              // Auto-play might be blocked, silently ignore
+            });
+          } else {
+            videoRef.current?.pause();
+          }
+        });
+      },
+      { threshold: 0.6 }
+    );
+
+    observer.observe(videoRef.current);
+    
+    return () => {
+      if (videoRef.current) {
+        observer.unobserve(videoRef.current);
+      }
+    };
+  }, [mediaType]);
+
+  const handleMediaClick = () => {
+    const currentTime = new Date().getTime();
+    const gap = currentTime - lastClickTime.current;
+    
+    if (gap > 0 && gap < 300) { // Double click threshold
+      if (!isLiked) handleLike();
+      setShowHeartPattern(true);
+      setTimeout(() => setShowHeartPattern(false), 800);
+    }
+    lastClickTime.current = currentTime;
+  };
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -243,7 +285,7 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
         transition={{ duration: 0.5, ease: "easeOut" }}
         id={`post-${id}`} 
         className={cn(
-          "bg-white shadow-sm sm:rounded-3xl sm:border border-gray-100 overflow-hidden mb-4",
+          "bg-white sm:border-y md:border border-gray-100 overflow-hidden mb-2 sm:mb-4 relative",
           commerce?.isSponsored && "bg-brand/[0.02]"
         )}
       >
@@ -295,7 +337,10 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
         </div>
 
         {/* Main Content */}
-        <div className="relative w-full max-h-[70vh] bg-black overflow-hidden group">
+        <div 
+          className="relative w-full max-h-[70vh] bg-black overflow-hidden group cursor-pointer"
+          onClick={handleMediaClick}
+        >
           {mediaType === 'video' ? (
             <video 
               ref={videoRef}
@@ -314,6 +359,20 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
               referrerPolicy="no-referrer"
             />
           )}
+
+          <AnimatePresence>
+            {showHeartPattern && (
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0, rotate: -20 }}
+                animate={{ scale: 1.5, opacity: 1, rotate: 0 }}
+                exit={{ scale: 2, opacity: 0, rotate: 20 }}
+                transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+              >
+                <Heart size={100} className="fill-white text-white drop-shadow-2xl" />
+              </motion.div>
+            )}
+          </AnimatePresence>
           
           {commerce?.isSelling && !commerce?.isSponsored && (
             <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl flex items-center gap-2 border border-white/10 shadow-xl">

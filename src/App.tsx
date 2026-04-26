@@ -107,12 +107,12 @@ const AppContent: React.FC = () => {
       <CanvasBackground />
 
       {/* Responsive Wrapper */}
-      <div className="w-full h-[100dvh] md:h-[calc(100vh-2rem)] bg-white md:bg-transparent shadow-brand/10 md:border border-white/5 relative overflow-hidden flex flex-col md:max-w-[600px] mx-auto md:my-4 md:rounded-[40px] md:glass-card">
-        <div className="flex-shrink-0 z-50 w-full">
+      <div className="w-full h-[100dvh] md:h-[calc(100vh-2rem)] bg-white shadow-2xl relative flex flex-col md:max-w-[420px] mx-auto md:my-4 md:rounded-[40px] md:border-[8px] border-gray-900 overflow-hidden">
+        <div className="flex-shrink-0 z-50 w-full relative bg-white">
           <Navbar onAuthClick={() => setIsAuthModalOpen(true)} />
         </div>
         
-        <main className="flex-1 overflow-y-auto custom-scrollbar md:px-4 relative">
+        <main className="flex-1 overflow-y-auto custom-scrollbar relative bg-[#f0f0f2]">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}

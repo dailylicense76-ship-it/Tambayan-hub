@@ -90,6 +90,16 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(0,0,0,0.2);
   }
+
+  .tiktok-scroll {
+    scroll-snap-type: y mandatory;
+    height: calc(100vh - 60px);
+    overflow-y: scroll;
+  }
+  .tiktok-snap-start {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
 }
 
 @keyframes glow {

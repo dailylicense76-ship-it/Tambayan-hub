@@ -83,9 +83,9 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
   }
 
   return (
-    <div className="pb-24 min-h-screen bg-[#f0f0f2]">
+    <div className="min-h-full bg-[#f0f0f2]">
       {/* Top Tabs */}
-      <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-gray-100 flex items-center justify-center py-0 shadow-sm">
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xl border-b border-gray-100 flex items-center justify-center py-0 shadow-sm">
         <div className="flex gap-8 px-4 w-full max-w-lg mx-auto justify-center">
           <button 
             onClick={() => setActiveTab('for-you')}
@@ -166,30 +166,31 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
           )}
         </div>
       ) : (
-        <div className="space-y-4 sm:space-y-6 pt-2">
+        <div className="tiktok-scroll custom-scrollbar pb-[100px]">
           {posts.map((post) => (
-            <PostCard 
-              key={post.id} 
-              id={post.id}
-              user={{ 
-                uid: post.userId,
-                name: post.userName, 
-                handle: post.userHandle, 
-                avatar: post.userAvatar 
-              }}
-              content={{ image: post.image, text: post.text }}
-              stats={post.stats}
-              commerce={post.commerce}
-              mediaType={post.mediaType}
-              onOrderClick={onOrderClick}
-            />
+            <div key={post.id} className="tiktok-snap-start mb-2 sm:mb-6">
+              <PostCard 
+                id={post.id}
+                user={{ 
+                  uid: post.userId,
+                  name: post.userName, 
+                  handle: post.userHandle, 
+                  avatar: post.userAvatar 
+                }}
+                content={{ image: post.image, text: post.text }}
+                stats={post.stats}
+                commerce={post.commerce}
+                mediaType={post.mediaType}
+                onOrderClick={onOrderClick}
+              />
+            </div>
           ))}
           
-          <div className="py-12 text-center">
+          <div className="py-12 text-center tiktok-snap-start">
             <p className="text-[10px] font-black uppercase tracking-[.4em] text-gray-300">
-              Degz Enterprises &copy; 2024
+              Degz Enterprises &copy; 2026
             </p>
-            <p className="text-[8px] font-bold text-gray-200 mt-1 uppercase">Tambayan Hub Legit Marketplace License</p>
+            <p className="text-[8px] font-bold text-gray-200 mt-1 uppercase">Tambayan Hub Legit Marketplace</p>
           </div>
         </div>
       )}
