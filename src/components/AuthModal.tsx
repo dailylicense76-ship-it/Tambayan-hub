@@ -9,6 +9,7 @@ import {
   UserCredential
 } from 'firebase/auth';
 import { firebaseService } from '../lib/firebaseService';
+import { Logo } from './Logo';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -63,25 +64,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed inset-0 m-auto w-full max-w-sm h-fit z-[60] glass-card p-8 flex flex-col items-center"
+            className="fixed inset-0 m-auto w-full max-w-sm h-fit z-[60] glass-card p-8 flex flex-col items-center bg-white border-brand/10 shadow-2xl"
           >
-            <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors">
+            <button onClick={onClose} className="absolute top-4 right-4 text-gray-300 hover:text-brand transition-colors">
               <X size={24} />
             </button>
 
-            <div className="w-16 h-16 bg-brand/20 rounded-2xl flex items-center justify-center mb-6">
-              <div className="w-8 h-8 bg-brand rounded-lg shadow-lg shadow-brand/40" />
-            </div>
+            <Logo size="lg" className="mb-6" />
 
-            <h2 className="text-2xl font-bold mb-2">Welcome to Tambayan</h2>
-            <p className="text-center text-white/60 text-sm mb-8">
-              Join the marketplace. Log in to place your order and track your flex.
+            <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Tuloy Po Kayo!</h2>
+            <p className="text-center text-gray-400 text-sm mb-8 font-bold">
+              Join the community. Log in to place your order and track your flex.
             </p>
 
             <div className="w-full space-y-3">
               <button 
                 onClick={() => handleLogin('google')}
-                className="w-full glass hover:bg-white/10 flex items-center justify-center gap-3 py-3 rounded-xl transition-all"
+                className="w-full bg-white border border-gray-100 shadow-sm hover:bg-gray-50 flex items-center justify-center gap-3 py-4 rounded-xl transition-all"
               >
                 <img 
                   src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
@@ -89,28 +88,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                   className="w-5 h-5" 
                   referrerPolicy="no-referrer"
                 />
-                Continue with Google
+                <span className="text-sm font-black uppercase tracking-widest text-gray-700">Continue with Google</span>
               </button>
               
               <button 
                 onClick={() => handleLogin('facebook')}
-                className="w-full bg-[#1877F2] hover:bg-[#1877F2]/90 flex items-center justify-center gap-3 py-3 rounded-xl transition-all"
+                className="w-full bg-[#1877F2] hover:bg-[#1877F2]/90 flex items-center justify-center gap-3 py-4 rounded-xl transition-all shadow-md shadow-[#1877F2]/20"
               >
-                <Facebook size={20} fill="white" />
-                Continue with Facebook
+                <Facebook size={20} fill="white" className="text-white" />
+                <span className="text-sm font-black uppercase tracking-widest text-white">Continue with Facebook</span>
               </button>
 
               <button 
                 disabled
-                className="w-full glass opacity-50 flex items-center justify-center gap-3 py-3 rounded-xl transition-all cursor-not-allowed"
+                className="w-full bg-gray-50 opacity-50 flex items-center justify-center gap-3 py-4 rounded-xl transition-all cursor-not-allowed"
               >
-                <Mail size={20} />
-                Continue with Email (Coming Soon)
+                <Mail size={20} className="text-gray-300" />
+                <span className="text-sm font-black uppercase tracking-widest text-gray-300">Email Login (Soon)</span>
               </button>
             </div>
 
-            <p className="mt-8 text-[11px] text-white/30 text-center px-4">
-              By continuing, you agree to our Terms of Service and Privacy Policy.
+            <p className="mt-8 text-[10px] text-gray-300 text-center px-4 font-bold uppercase tracking-widest leading-relaxed">
+              Degz Enterprises &copy; 2024<br/>
+              By continuing, you agree to our Terms.
             </p>
           </motion.div>
         </>

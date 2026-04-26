@@ -11,6 +11,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { Discover } from './components/Discover';
 import { Activity } from './components/Activity';
 import { CreatePost } from './components/CreatePost';
+import { ChatList } from './components/ChatList';
 import { AuthModal } from './components/AuthModal';
 import { CanvasBackground } from './components/CanvasBackground';
 import { doc, getDocFromServer } from 'firebase/firestore';
@@ -52,8 +53,13 @@ const AppContent: React.FC = () => {
   };
 
   const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    useEffect(() => {
+      if (!user && !loading) {
+        setIsAuthModalOpen(true);
+      }
+    }, [user, loading]);
+
     if (!user) {
-      setIsAuthModalOpen(true);
       return (
         <div className="flex flex-col items-center justify-center p-12 text-center h-[50vh]">
           <p className="text-white/40 mb-4 tracking-widest text-xs uppercase font-bold">Sign in to access this page</p>
@@ -98,6 +104,7 @@ const AppContent: React.FC = () => {
                 <Route path="/" element={<Feed onOrderClick={handleOrderClick} />} />
                 <Route path="/discover" element={<Discover />} />
                 <Route path="/activity" element={<Activity />} />
+                <Route path="/chats" element={<RequireAuth><ChatList /></RequireAuth>} />
                 <Route path="/post" element={<RequireAuth><CreatePost /></RequireAuth>} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/admin" element={<AdminDashboard />} />
@@ -105,6 +112,11 @@ const AppContent: React.FC = () => {
             </motion.div>
           </AnimatePresence>
         </main>
+
+        <footer className="mt-20 p-8 text-center text-white/10 border-t border-white/5 space-y-1">
+          <p className="text-[10px] font-black uppercase tracking-[.3em] font-mono">&copy; 2026 DEGZ ENTERPRISES</p>
+          <p className="text-[8px] font-bold uppercase tracking-widest">Licensed to Tambayan Hub Marketplace</p>
+        </footer>
 
         <BottomNav />
       </div>

@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Package, Grid, CheckCircle2, Truck, AlertCircle, ShieldCheck, LogOut } from 'lucide-react';
+import { Package, Grid, CheckCircle2, Truck, AlertCircle, ShieldCheck, LogOut, Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
 import { firebaseService } from '../lib/firebaseService';
 import { cn } from '../lib/utils';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export const Profile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'flex' | 'orders'>('flex');
   const [orders, setOrders] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [stats, setStats] = useState({ following: 0, followers: 0 });
   const user = auth.currentUser;
   const navigate = useNavigate();
 
@@ -26,6 +28,20 @@ export const Profile: React.FC = () => {
       
       const adminStatus = await firebaseService.checkIsAdmin(user.uid);
       setIsAdmin(!!adminStatus);
+
+      // Fetch follow stats
+      const followingQuery = query(collection(db, 'follows'), where('followerId', '==', user.uid));
+      const followersQuery = query(collection(db, 'follows'), where('followingId', '==', user.uid));
+      
+      const [followingSnap, followersSnap] = await Promise.all([
+        getDocs(followingQuery),
+        getDocs(followersQuery)
+      ]);
+      
+      setStats({
+        following: followingSnap.size,
+        followers: followersSnap.size
+      });
     };
 
     loadData();
@@ -45,14 +61,14 @@ export const Profile: React.FC = () => {
   if (!user) return null;
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 bg-white min-h-screen text-gray-900">
       {/* Profile Header */}
       <div className="p-6 flex flex-col items-center">
         <div className="relative mb-4">
-          <div className="w-24 h-24 rounded-full border-4 border-brand p-1">
+          <div className="w-24 h-24 rounded-full border-4 border-brand p-1 bg-white">
             <img 
               src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
-              className="w-full h-full rounded-full bg-white/10" 
+              className="w-full h-full rounded-full bg-gray-50 object-cover" 
               alt="Avatar"
               referrerPolicy="no-referrer"
             />
@@ -60,102 +76,121 @@ export const Profile: React.FC = () => {
           <motion.div 
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute bottom-1 right-1 bg-brand p-1.5 rounded-full border-4 border-[#0f172a]"
+            className="absolute bottom-1 right-1 bg-brand p-1.5 rounded-full border-4 border-white shadow-sm"
           >
-            <CheckCircle2 size={14} />
+            <ShieldCheck size={14} className="text-white" />
           </motion.div>
         </div>
         
-        <h2 className="text-xl font-bold">{user.displayName}</h2>
-        <p className="text-white/50 text-sm mb-4">@{user.email?.split('@')[0]}</p>
+        <h2 className="text-xl font-black text-gray-900 uppercase tracking-tighter">{user.displayName}</h2>
+        <p className="text-gray-400 text-sm mb-6 flex items-center gap-1 font-bold">
+          @{user.email?.split('@')[0]}
+          <CheckCircle2 size={12} className="text-brand" />
+        </p>
+
+        <div className="flex gap-8 mb-8">
+          <div className="text-center">
+            <p className="text-lg font-black tracking-tighter text-gray-900">{stats.followers}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Followers</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-black tracking-tighter text-gray-900">{stats.following}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Following</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-black tracking-tighter text-gray-900">0</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Flexes</p>
+          </div>
+        </div>
 
         {isAdmin && (
-          <Link to="/admin" className="w-full btn-secondary text-sm mb-3 flex items-center justify-center gap-2 border-brand/20 bg-brand/5">
+          <Link to="/admin" className="w-full btn-secondary text-[10px] mb-3 flex items-center justify-center gap-2 border-brand/20 bg-brand/5 shadow-sm">
             <ShieldCheck size={18} className="text-brand" />
             Boss Panel (Admin)
           </Link>
         )}
         
         <div className="flex gap-4 w-full mb-6">
-          <button className="flex-1 btn-secondary text-sm">Edit Profile</button>
-          <button onClick={handleLogout} className="btn-secondary p-3 text-red-500">
+          <button className="flex-1 btn-secondary text-[10px]">Edit Profile</button>
+          <button onClick={handleLogout} className="btn-secondary p-3 text-red-500 border-red-100 flex items-center justify-center">
             <LogOut size={20} />
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex px-4 border-b border-white/5">
+      <div className="flex px-4 border-b border-gray-100">
         <button 
           onClick={() => setActiveTab('flex')}
           className={cn(
             "flex-1 py-4 flex flex-col items-center gap-1 border-b-2 transition-all",
-            activeTab === 'flex' ? "border-brand text-brand" : "border-transparent text-white/40"
+            activeTab === 'flex' ? "border-brand text-brand" : "border-transparent text-gray-300"
           )}
         >
           <Grid size={20} />
-          <span className="text-[10px] font-bold uppercase tracking-widest">My Flex</span>
+          <span className="text-[10px] font-black uppercase tracking-widest">My Flex</span>
         </button>
         <button 
           onClick={() => setActiveTab('orders')}
           className={cn(
             "flex-1 py-4 flex flex-col items-center gap-1 border-b-2 transition-all",
-            activeTab === 'orders' ? "border-brand text-brand" : "border-transparent text-white/40"
+            activeTab === 'orders' ? "border-brand text-brand" : "border-transparent text-gray-300"
           )}
         >
           <Package size={20} />
-          <span className="text-[10px] font-bold uppercase tracking-widest">Fulfillment</span>
+          <span className="text-[10px] font-black uppercase tracking-widest">Fulfillment</span>
         </button>
       </div>
 
       {/* Tab Content */}
-      <div className="p-4">
+      <div className="p-4 bg-gray-50 min-h-[400px]">
         {activeTab === 'flex' ? (
           <div className="grid grid-cols-3 gap-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="aspect-square glass rounded-lg flex items-center justify-center">
-                <Grid size={24} className="opacity-10" />
+              <div key={i} className="aspect-square bg-white border border-gray-100 rounded-2xl shadow-sm flex items-center justify-center">
+                <Grid size={24} className="text-gray-100" />
               </div>
             ))}
           </div>
         ) : (
           <div className="space-y-4">
             {orders.length === 0 ? (
-              <div className="py-10 text-center text-white/20">
-                <p>No orders to fulfill yet.</p>
+              <div className="py-20 text-center">
+                <Package size={48} className="text-gray-200 mx-auto mb-4" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-300">Walang orders to fulfill</p>
               </div>
             ) : orders.map((order) => (
-              <div key={order.id} className="glass-card p-4 space-y-3">
+              <div key={order.id} className="glass-card p-5 space-y-4 bg-white shadow-sm border-brand/5">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="font-bold text-sm text-brand">{order.id.slice(0, 8)}</h4>
-                    <p className="text-xs text-white/50">{order.buyerName}</p>
+                    <h4 className="font-black text-[12px] text-brand uppercase italic">#{order.id.slice(0, 8)}</h4>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest tracking-tighter">Buyer: {order.buyerName}</p>
                   </div>
                   <div className={cn(
-                    "px-2 py-1 rounded text-[10px] font-bold uppercase tracking-tighter",
-                    order.status === 'pending' ? "bg-amber-500/20 text-amber-500" : "bg-green-500/20 text-green-500"
+                    "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
+                    order.status === 'pending' ? "bg-amber-100 text-amber-600" : "bg-green-100 text-green-600"
                   )}>
                     {order.status}
                   </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <div className="w-12 h-12 glass rounded-lg flex items-center justify-center">
-                    <Package size={20} className="opacity-20" />
+                <div className="flex gap-4 p-3 bg-gray-50 rounded-2xl items-center">
+                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                    <Package size={20} className="text-brand/30" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">{order.itemName}</p>
-                    <p className="text-xs font-bold text-brand">₱{order.price?.toLocaleString()}</p>
+                    <p className="text-sm font-black text-gray-900 leading-tight">{order.itemName}</p>
+                    <p className="text-xs font-black text-brand tracking-tighter italic">₱{order.price?.toLocaleString()}</p>
                   </div>
                 </div>
 
-                <div className="space-y-2 pt-2 border-t border-white/5">
-                  <div className="flex gap-2 items-start text-xs text-white/60">
-                    <Truck size={14} className="shrink-0" />
+                <div className="space-y-2 pt-3 border-t border-gray-100">
+                  <div className="flex gap-2 items-start text-[10px] font-bold text-gray-500 uppercase tracking-tight">
+                    <Truck size={14} className="shrink-0 text-brand" />
                     <p>{order.address}</p>
                   </div>
                   {order.note && (
-                    <div className="flex gap-2 items-start text-xs text-white/40 italic">
+                    <div className="flex gap-2 items-start text-[10px] text-gray-400 italic">
                       <AlertCircle size={14} className="shrink-0" />
                       <p>{order.note}</p>
                     </div>
@@ -165,9 +200,9 @@ export const Profile: React.FC = () => {
                 {order.status === 'pending' && (
                   <button 
                     onClick={() => handleUpdateStatus(order.id)}
-                    className="w-full btn-primary py-2 text-xs"
+                    className="w-full btn-primary py-3 text-[10px]"
                   >
-                    Mark as Shipped
+                    Mark as Shipped (Confirm Order)
                   </button>
                 )}
               </div>

@@ -74,6 +74,54 @@
         "email": { "type": "string" }
       },
       "required": ["uid"]
+    },
+    "Chat": {
+      "title": "Chat Conversation",
+      "description": "A conversation between two users",
+      "type": "object",
+      "properties": {
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "participantData": { "type": "object" },
+        "lastMessage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["participants", "updatedAt"]
+    },
+    "Message": {
+      "title": "Chat Message",
+      "description": "An individual message in a chat",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderId", "text", "timestamp"]
+    },
+    "Follow": {
+      "title": "User Follower",
+      "description": "A follow relationship between users",
+      "type": "object",
+      "properties": {
+        "followerId": { "type": "string" },
+        "followingId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["followerId", "followingId", "createdAt"]
+    },
+    "Report": {
+      "title": "Content Report",
+      "description": "A user report for inappropriate content",
+      "type": "object",
+      "properties": {
+        "reporterId": { "type": "string" },
+        "postId": { "type": "string" },
+        "postContent": { "type": "object" },
+        "reason": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "resolved"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["reporterId", "postId", "reason", "status", "createdAt"]
     }
   },
   "firestore": {
@@ -92,6 +140,22 @@
     "admins/{adminId}": {
       "schema": "Admin",
       "description": "Admin access control list"
+    },
+    "chats/{chatId}": {
+      "schema": "Chat",
+      "description": "Direct message threads"
+    },
+    "chats/{chatId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Messages within a chat thread"
+    },
+    "follows/{followId}": {
+      "schema": "Follow",
+      "description": "Social graph"
+    },
+    "reports/{reportId}": {
+      "schema": "Report",
+      "description": "Moderation queue"
     }
   }
 }

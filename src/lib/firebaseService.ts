@@ -1,4 +1,4 @@
-import { auth, db } from './firebase';
+import { auth, db, storage } from './firebase';
 import { 
   collection, 
   doc, 
@@ -10,10 +10,12 @@ import {
   orderBy, 
   onSnapshot, 
   addDoc, 
+  deleteDoc,
   serverTimestamp, 
   Timestamp,
   updateDoc
 } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export enum OperationType {
   CREATE = 'create',
@@ -152,9 +154,230 @@ export const firebaseService = {
     const adminRef = doc(db, 'admins', uid);
     try {
       const adminDoc = await getDoc(adminRef);
-      return adminDoc.exists();
+      if (adminDoc.exists()) return true;
+      
+      // Fallback for hardcoded admins
+      const user = auth.currentUser;
+      const hardcodedAdmins = ['shuty0433@gmail.com', 'shuty04g33@gmail.com'];
+      return !!(user && user.email && hardcodedAdmins.includes(user.email) && user.emailVerified);
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, `admins/${uid}`);
+    }
+  },
+
+  // Chat
+  async getOrCreateChat(userA: string, userB: string, userDataA: any, userDataB: any) {
+    const participants = [userA, userB].sort();
+    const chatId = participants.join('_');
+    const chatRef = doc(db, 'chats', chatId);
+    
+    try {
+      const chatDoc = await getDoc(chatRef);
+      if (!chatDoc.exists()) {
+        await setDoc(chatRef, {
+          participants,
+          participantData: {
+            [userA]: userDataA,
+            [userB]: userDataB
+          },
+          updatedAt: serverTimestamp(),
+          lastMessage: ''
+        });
+      }
+      return chatId;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `chats/${chatId}`);
+    }
+  },
+
+  subscribeChats(userId: string, callback: (chats: any[]) => void) {
+    const chatsRef = collection(db, 'chats');
+    const q = query(chatsRef, where('participants', 'array-contains', userId), orderBy('updatedAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'chats');
+    });
+  },
+
+  async sendMessage(chatId: string, senderId: string, text: string) {
+    const messagesRef = collection(db, 'chats', chatId, 'messages');
+    const chatRef = doc(db, 'chats', chatId);
+    
+    try {
+      await addDoc(messagesRef, {
+        senderId,
+        text,
+        timestamp: serverTimestamp()
+      });
+      await updateDoc(chatRef, {
+        lastMessage: text,
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `chats/${chatId}/messages`);
+    }
+  },
+
+  subscribeMessages(chatId: string, callback: (messages: any[]) => void) {
+    const messagesRef = collection(db, 'chats', chatId, 'messages');
+    const q = query(messagesRef, orderBy('timestamp', 'asc'));
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `chats/${chatId}/messages`);
+    });
+  },
+
+  // Social
+  async toggleFollow(followerId: string, followingId: string) {
+    const followId = `${followerId}_${followingId}`;
+    const followRef = doc(db, 'follows', followId);
+    
+    try {
+      const followDoc = await getDoc(followRef);
+      if (followDoc.exists()) {
+        await deleteDoc(followRef);
+      } else {
+        await setDoc(followRef, {
+          followerId,
+          followingId,
+          createdAt: serverTimestamp()
+        });
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `follows/${followId}`);
+    }
+  },
+
+  async isFollowing(followerId: string, followingId: string) {
+    const followId = `${followerId}_${followingId}`;
+    const followRef = doc(db, 'follows', followId);
+    try {
+      const followDoc = await getDoc(followRef);
+      return followDoc.exists();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `follows/${followId}`);
+    }
+  },
+
+  // Moderation
+  async reportPost(postId: string, reporterId: string, reason: string, postContent: any) {
+    try {
+      await addDoc(collection(db, 'reports'), {
+        postId,
+        reporterId,
+        reason,
+        postContent,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'reports');
+    }
+  },
+
+  subscribeReports(callback: (reports: any[]) => void) {
+    const reportsRef = collection(db, 'reports');
+    const q = query(reportsRef, where('status', '==', 'pending'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'reports');
+    });
+  },
+
+  async resolveReport(reportId: string) {
+    try {
+      await updateDoc(doc(db, 'reports', reportId), {
+        status: 'resolved',
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `reports/${reportId}`);
+    }
+  },
+
+  async deletePost(postId: string) {
+    try {
+      await deleteDoc(doc(db, 'posts', postId));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `posts/${postId}`);
+    }
+  },
+
+  // Interactions (TikTok/FB Style)
+  async toggleLike(postId: string, userId: string) {
+    const likeId = `${userId}_${postId}`;
+    const likeRef = doc(db, 'likes', likeId);
+    try {
+      const likeDoc = await getDoc(likeRef);
+      if (likeDoc.exists()) {
+        await deleteDoc(likeRef);
+      } else {
+        await setDoc(likeRef, {
+          userId,
+          postId,
+          createdAt: serverTimestamp()
+        });
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `likes/${likeId}`);
+    }
+  },
+
+  async isLiked(postId: string, userId: string) {
+    const likeId = `${userId}_${postId}`;
+    const likeRef = doc(db, 'likes', likeId);
+    try {
+      const likeDoc = await getDoc(likeRef);
+      return likeDoc.exists();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `likes/${likeId}`);
+    }
+  },
+
+  async addComment(postId: string, commentData: any) {
+    const commentsRef = collection(db, 'posts', postId, 'comments');
+    try {
+      await addDoc(commentsRef, {
+        ...commentData,
+        createdAt: serverTimestamp()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, `posts/${postId}/comments`);
+    }
+  },
+
+  subscribeComments(postId: string, callback: (comments: any[]) => void) {
+    const commentsRef = collection(db, 'posts', postId, 'comments');
+    const q = query(commentsRef, orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `posts/${postId}/comments`);
+    });
+  },
+
+  subscribeAllOrders(callback: (orders: any[]) => void) {
+    const ordersRef = collection(db, 'orders');
+    const q = query(ordersRef, orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'orders');
+    });
+  },
+
+  async uploadFile(file: File, folder: string = 'posts') {
+    const fileName = `${Date.now()}_${file.name}`;
+    const storageRef = ref(storage, `${folder}/${fileName}`);
+    try {
+      const snapshot = await uploadBytes(storageRef, file);
+      return await getDownloadURL(snapshot.ref);
+    } catch (error) {
+      console.error('Upload Error:', error);
+      throw error;
     }
   }
 };
