@@ -15,7 +15,7 @@ export const BottomNav: React.FC = () => {
   ];
 
   return (
-    <nav className="absolute bottom-0 z-40 w-full bg-white/95 backdrop-blur-xl px-6 py-4 flex items-center justify-between border-t border-gray-100 shadow-[0_-8px_30px_rgb(0,0,0,0.04)] pb-[env(safe-area-inset-bottom,1.5rem)] md:rounded-b-[40px] md:pb-6">
+    <nav className="relative z-40 w-full bg-white/95 backdrop-blur-xl px-6 py-4 flex items-center justify-between border-t border-gray-100 shadow-[0_-8px_30px_rgb(0,0,0,0.04)] pb-[env(safe-area-inset-bottom,1.5rem)] md:rounded-b-[40px] md:pb-6">
       {navItems.map((item) => (
         <Link 
           key={item.label}

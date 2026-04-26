@@ -1,14 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { Search, TrendingUp, Users, ChevronRight, Hash, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSearchParams } from 'react-router-dom';
 import { firebaseService } from '../lib/firebaseService';
 import { cn } from '../lib/utils';
 
 export const Discover: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [posts, setPosts] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('#AllFlex');
+
+  useEffect(() => {
+    // Sync search query if URL changes
+    setSearchQuery(searchParams.get('q') || '');
+  }, [searchParams]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    if (val) {
+      setSearchParams({ q: val });
+    } else {
+      setSearchParams({});
+    }
+  };
 
   useEffect(() => {
     const loadItems = async () => {
@@ -59,9 +75,9 @@ export const Discover: React.FC = () => {
           <Search className="text-gray-300 mr-4" size={20} />
           <input 
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search items, tags, or flexes..."
-            className="w-full bg-transparent focus:outline-none text-sm font-bold text-gray-900 placeholder:text-gray-300"
+            className="w-full bg-transparent focus:outline-none text-sm font-bold text-gray-900 placeholder:text-gray-400"
           />
         </div>
       </div>

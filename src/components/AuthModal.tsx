@@ -24,6 +24,7 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [loading, setLoading] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [authMode, setAuthMode] = React.useState<'select' | 'email' | 'phone'>('select');
   const [isSignUp, setIsSignUp] = React.useState(false);
   
@@ -45,12 +46,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
       setPhoneNumber('');
       setVerificationCode('');
       setConfirmationResult(null);
+      setErrorMessage(null);
+      setLoading(false);
     }
   }, [isOpen]);
 
   const handleSocialLogin = async (provider: 'google' | 'facebook') => {
     if (loading) return;
     setLoading(true);
+    setErrorMessage(null);
     try {
       let result: UserCredential;
       if (provider === 'google') {
@@ -65,7 +69,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
       await saveProfile(result.user);
       onSuccess(result);
     } catch (error: any) {
-      handleAuthError(error);
+      handleAuthError(error, provider);
     } finally {
       setLoading(false);
     }
@@ -75,6 +79,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     e.preventDefault();
     if (loading) return;
     setLoading(true);
+    setErrorMessage(null);
     try {
       let result: UserCredential;
       if (isSignUp) {
@@ -85,7 +90,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
       await saveProfile(result.user);
       onSuccess(result);
     } catch (error: any) {
-      handleAuthError(error);
+      handleAuthError(error, 'email');
     } finally {
       setLoading(false);
     }
@@ -103,13 +108,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     e.preventDefault();
     if (loading) return;
     setLoading(true);
+    setErrorMessage(null);
     try {
       setupRecaptcha();
       const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+63${phoneNumber.replace(/^0/, '')}`;
       const confirmation = await signInWithPhoneNumber(auth, formattedPhone, (window as any).recaptchaVerifier);
       setConfirmationResult(confirmation);
     } catch (error: any) {
-      handleAuthError(error);
+      handleAuthError(error, 'phone');
     } finally {
       setLoading(false);
     }
@@ -119,12 +125,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     e.preventDefault();
     if (loading || !confirmationResult) return;
     setLoading(true);
+    setErrorMessage(null);
     try {
       const result = await confirmationResult.confirm(verificationCode);
       await saveProfile(result.user);
       onSuccess(result);
     } catch (error: any) {
-      handleAuthError(error);
+      handleAuthError(error, 'phone');
     } finally {
       setLoading(false);
     }
@@ -141,12 +148,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     });
   };
 
-  const handleAuthError = (error: any) => {
+  const handleAuthError = (error: any, provider: string) => {
     console.error('Auth Error:', error);
     if (error.code === 'auth/unauthorized-domain') {
-      alert('Unauthorized Domain: Please add this domain to your Firebase Console.');
-    } else if (error.code !== 'auth/popup-closed-by-user') {
-      alert(`Authentication failed: ${error.message || 'Unknown error'}.`);
+      setErrorMessage('Unauthorized Domain: Please add this domain to your Firebase Console.');
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      return;
+    } else if (provider === 'facebook' && error.code) {
+      setErrorMessage('Facebook login needs to be configured in Firebase Console first.');
+    } else {
+      let msg = error.message || 'Unknown error';
+      if (error.code === 'auth/email-already-in-use') msg = 'This email is already registered.';
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') msg = 'Invalid email or password.';
+      if (error.code === 'auth/invalid-phone-number') msg = 'Invalid phone number format.';
+      if (error.code === 'auth/too-many-requests') msg = 'Too many attempts. Please try again later.';
+      setErrorMessage(`Authentication failed: ${msg}`);
     }
   };
 
@@ -191,6 +207,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             <p className="text-center text-gray-400 text-sm mb-8 font-bold">
               {loading ? "Inaayos lang namin profile mo, lods." : "Join the community. Log in to place your order and track your flex."}
             </p>
+
+            {errorMessage && (
+              <div className="w-full bg-red-50 text-red-500 text-xs font-bold p-4 rounded-xl mb-6 border border-red-100 flex items-start gap-2">
+                <span>⚠️</span>
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
             <div className="w-full space-y-3 relative overflow-hidden">
               {loading && (
@@ -271,7 +294,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                         placeholder="Email Address"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand"
+                        className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand"
                       />
                     </div>
                     <div>
@@ -281,7 +304,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                         placeholder="Password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand"
+                        className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand"
                       />
                     </div>
                     <button 
@@ -327,7 +350,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                             placeholder="Phone Number (e.g. 0912...)"
                             value={phoneNumber}
                             onChange={e => setPhoneNumber(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand"
+                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand"
                           />
                         </div>
                         <div id="recaptcha-container"></div>
@@ -348,7 +371,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                             placeholder="6-digit code"
                             value={verificationCode}
                             onChange={e => setVerificationCode(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand tracking-widest text-center"
+                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand tracking-widest text-center"
                           />
                         </div>
                         <button 
