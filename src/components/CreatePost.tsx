@@ -30,20 +30,24 @@ export const CreatePost: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth.currentUser) return;
+    if (!auth.currentUser) return alert('Please log in to share a flex!');
     if (!text || !file) return alert('Please add a description and select a photo or video');
 
     setLoading(true);
     setUploadProgress(0);
     try {
+      console.log('Initiating upload for:', file.name);
       // 1. Upload File
       const downloadUrl = await firebaseService.uploadFile(file, 'posts', (progress) => {
-        setUploadProgress(Math.round(progress));
+        const rounded = Math.round(progress);
+        console.log('Upload state progress:', rounded);
+        setUploadProgress(rounded);
       });
       
-      // 2. Create Post
-      const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
+      console.log('Upload successful, URL:', downloadUrl);
+      setUploadProgress(95); // Almost there
       
+      const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
       const postPayload: any = {
         userId: auth.currentUser.uid,
         userName: auth.currentUser.displayName || 'Legit Seller',
@@ -271,7 +275,9 @@ export const CreatePost: React.FC = () => {
                   <span className="text-sm font-black text-gray-900">{uploadProgress}%</span>
                 </div>
               </div>
-              <h3 className="text-lg font-black text-gray-900 tracking-tighter">Uploading Flex...</h3>
+              <h3 className="text-lg font-black text-gray-900 tracking-tighter">
+                {uploadProgress < 10 ? 'Initializing...' : uploadProgress > 90 ? 'Finishing Up...' : 'Uploading Flex...'}
+              </h3>
               <p className="text-xs font-bold text-gray-400 text-center uppercase tracking-widest leading-relaxed">
                 Please don't close or switch tabs while we process your post.
               </p>
