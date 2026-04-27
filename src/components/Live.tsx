@@ -35,6 +35,7 @@ export const Live: React.FC = () => {
           localStreamRef.current = mStream;
           if (videoRef.current) {
             videoRef.current.srcObject = mStream;
+            videoRef.current.play().catch(console.error);
           }
           
           const newStreamRef = await addDoc(collection(db, 'liveStreams'), {
@@ -158,7 +159,14 @@ export const Live: React.FC = () => {
       {/* Video Background */}
       {mode === 'host' ? (
         <video 
-          ref={videoRef}
+          ref={(el) => {
+            if (el && localStreamRef.current && el.srcObject !== localStreamRef.current) {
+              el.srcObject = localStreamRef.current;
+              el.play().catch(console.error);
+            }
+            // @ts-ignore
+            videoRef.current = el;
+          }}
           autoPlay 
           playsInline 
           muted
