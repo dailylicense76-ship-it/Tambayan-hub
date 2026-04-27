@@ -354,7 +354,7 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
         transition={{ duration: 0.5, ease: "easeOut" }}
         id={`post-${id}`} 
         className={cn(
-          "bg-white sm:border-y md:border border-gray-100 overflow-hidden mb-2 sm:mb-4 relative",
+          "bg-white sm:border-y md:border border-gray-100 overflow-hidden mb-2 sm:mb-4 relative rounded-none md:rounded-[24px] transition-shadow hover:shadow-xl hover:shadow-black/5",
           commerce?.isSponsored && "bg-brand/[0.02]"
         )}
       >

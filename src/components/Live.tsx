@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { X, Users, Heart, Share2, Send, ShoppingBag, Radio } from 'lucide-react';
+import { X, Users, Heart, Share2, Send, ShoppingBag, Radio, AlertCircle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { auth, db } from '../lib/firebase';
 import { collection, doc, addDoc, onSnapshot, setDoc, serverTimestamp, query, orderBy, limit, updateDoc, increment } from 'firebase/firestore';
@@ -17,6 +17,7 @@ export const Live: React.FC = () => {
   const [hostDetails, setHostDetails] = useState<any>(null);
   const [currentStreamId, setCurrentStreamId] = useState<string | null>(streamId);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [errorStatus, setErrorStatus] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -43,17 +44,19 @@ export const Live: React.FC = () => {
           const streamRef = doc(db, 'liveStreams', user.uid);
           await setDoc(streamRef, {
             hostId: user.uid,
-            hostName: user.displayName,
+            hostName: user.displayName || user.email?.split('@')[0],
             hostPhoto: user.photoURL,
-            title: `${user.displayName}'s Top Flex`,
+            title: `${user.displayName || 'Someone'}'s Top Flex`,
             status: 'live',
             viewerCount: 0,
             createdAt: serverTimestamp(),
             updatedAt: Date.now()
           });
           setCurrentStreamId(user.uid);
-          setHostDetails({ name: user.displayName, photo: user.photoURL });
-          setIsInitializing(false);
+          setHostDetails({ name: user.displayName || user.email?.split('@')[0], photo: user.photoURL });
+          
+          // Small delay to ensure Ref is ready before setting isInitializing to false
+          setTimeout(() => setIsInitializing(false), 200);
 
           // Heartbeat
           const heartbeatMsg = setInterval(() => {
@@ -64,8 +67,8 @@ export const Live: React.FC = () => {
           window.liveStreamHeartbeat = heartbeatMsg;
         } catch (error) {
           console.error("Camera access denied or unavailable", error);
-          alert("Could not access camera for Live Stream.");
-          navigate('/');
+          setErrorStatus("Camera access denied or device not found. Please check permissions and try again.");
+          setIsInitializing(false);
         }
       };
       startHost();
@@ -151,9 +154,41 @@ export const Live: React.FC = () => {
 
   const handleClose = async () => {
     if (mode === 'host' && currentStreamId) {
-      await updateDoc(doc(db, 'liveStreams', currentStreamId), { status: 'ended' });
+      try {
+        await updateDoc(doc(db, 'liveStreams', currentStreamId), { status: 'ended' });
+      } catch (err) {
+        console.error("Could not close stream doc", err);
+      }
     }
     navigate(-1);
+  }
+
+  if (errorStatus) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-8 text-center ring-inset ring-brand ring-1">
+        <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border border-red-500/50">
+          <AlertCircle size={32} className="text-red-500" />
+        </div>
+        <h2 className="text-2xl font-black uppercase tracking-tighter mb-4 text-red-500">Live Failed</h2>
+        <p className="text-gray-400 text-sm font-bold mb-10 max-w-xs">{errorStatus}</p>
+        <button onClick={() => navigate(-1)} className="btn-primary w-full max-w-xs py-4">Go Back</button>
+      </div>
+    );
+  }
+
+  if (isInitializing && mode === 'host') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white">
+        <div className="relative">
+           <div className="w-24 h-24 border-4 border-brand/20 border-t-brand rounded-full animate-spin"></div>
+           <div className="absolute inset-0 flex items-center justify-center">
+             <Radio size={24} className="text-brand animate-pulse" />
+           </div>
+        </div>
+        <p className="mt-8 text-xs font-black uppercase tracking-[0.3em] text-brand animate-pulse">Initializing Camera...</p>
+        <p className="mt-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Prepping your flex session</p>
+      </div>
+    );
   }
 
   if (isInitializing && !streamId && mode !== 'host') {

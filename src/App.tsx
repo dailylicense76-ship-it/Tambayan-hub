@@ -112,19 +112,20 @@ const AppContent: React.FC = () => {
       <CanvasBackground />
 
       {/* Responsive Wrapper */}
-      <div className="w-full h-[100dvh] bg-white/95 backdrop-blur-2xl relative flex flex-col mx-auto overflow-hidden">
+      <div className="w-full xl:max-w-screen-2xl h-[100dvh] bg-white/95 backdrop-blur-2xl relative flex flex-col mx-auto overflow-hidden sm:shadow-2xl sm:border-x sm:border-gray-100/50">
         <div className="flex-shrink-0 z-50 w-full relative bg-white border-b border-gray-100">
           <Navbar onAuthClick={() => setIsAuthModalOpen(true)} />
         </div>
         
-        <main className="flex-1 overflow-y-auto relative w-full pb-28">
+        <main className="flex-1 overflow-y-auto relative w-full pb-28 custom-scrollbar">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.02 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="min-h-full"
             >
               <Routes location={location}>
                 <Route path="/" element={<Feed onOrderClick={handleOrderClick} />} />

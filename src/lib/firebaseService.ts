@@ -521,18 +521,32 @@ export const firebaseService = {
       }
     }
 
-    if (onProgress) onProgress(30);
-
+    const fileName = `${Date.now()}_${fileToUpload.name}`;
+    const storageRef = ref(storage, `${folder}/${fileName}`);
+    
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (onProgress) onProgress(100);
-        resolve(reader.result as string);
-      };
-      reader.onerror = reject;
-      
-      if (onProgress) onProgress(60);
-      reader.readAsDataURL(fileToUpload);
+      const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
+
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          if (onProgress) onProgress(progress);
+        },
+        (error) => {
+          console.error('Upload Error:', error);
+          reject(error);
+        },
+        async () => {
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            if (onProgress) onProgress(100);
+            resolve(downloadURL);
+          } catch (err) {
+            reject(err);
+          }
+        }
+      );
     });
   }
 };

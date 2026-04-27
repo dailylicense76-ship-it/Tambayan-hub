@@ -123,26 +123,20 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
     <div className="min-h-full bg-[#f0f0f2]">
       {/* Top Tabs */}
       <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xl border-b border-gray-100 flex items-center justify-center py-0 shadow-sm">
-        <div className="flex gap-8 px-4 w-full max-w-lg mx-auto justify-center">
-          <button 
-            onClick={() => setActiveTab('for-you')}
-            className={cn(
-              "text-[13px] font-black uppercase tracking-widest transition-all py-5 border-b-2",
-              activeTab === 'for-you' ? "text-brand border-brand" : "text-gray-400 border-transparent hover:text-gray-600"
-            )}
-          >
-            For You
-          </button>
-          <button 
-            onClick={() => setActiveTab('following')}
-            className={cn(
-              "text-[13px] font-black uppercase tracking-widest transition-all py-5 border-b-2",
-              activeTab === 'following' ? "text-brand border-brand" : "text-gray-400 border-transparent hover:text-gray-600"
-            )}
-          >
-            Following
-          </button>
-        </div>
+          <div className="flex gap-4 px-4 w-full max-w-lg mx-auto justify-center">
+            {['Following', 'For You'].map((tab) => (
+              <button 
+                key={tab}
+                onClick={() => setActiveTab(tab.toLowerCase().replace(' ', '-') as any)}
+                className={cn(
+                  "text-[11px] font-black uppercase tracking-[0.3em] transition-all py-5 border-b-2",
+                  activeTab === tab.toLowerCase().replace(' ', '-') ? "text-brand border-brand" : "text-gray-400 border-transparent hover:text-gray-600"
+                )}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
       </div>
 
       {/* Stories / Highlights Bar */}
@@ -189,13 +183,13 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
         })}
       </div>
 
-      <div className="w-full max-w-lg mx-auto">
+      <div className="w-full max-w-screen-xl mx-auto px-0 sm:px-4 lg:px-8">
         {posts.length > 0 && (
           <div className="flex gap-2 mb-2 pt-4 px-4 overflow-x-auto custom-scrollbar pb-2">
             {Array.from(new Set(['All', ...posts.flatMap(p => p.text?.match(/#[a-zA-Z0-9]+/g) || []).map(t => t.replace('#', ''))])).slice(0, 8).map((cat) => (
               <button 
                 key={cat} 
-                className="whitespace-nowrap bg-white text-gray-600 px-4 py-2 rounded-full text-[11px] font-bold transition-all shadow-sm border border-gray-100 hover:bg-gray-50"
+                className="whitespace-nowrap bg-white text-gray-600 px-5 py-2 rounded-full text-[11px] font-black uppercase tracking-widest transition-all shadow-sm border border-gray-100 hover:bg-gray-50 hover:border-brand/30 active:scale-95"
               >
                 {cat}
               </button>
@@ -205,36 +199,44 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
 
       {posts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center px-8">
-          <div className="w-20 h-20 bg-gray-50 rounded-[32px] flex items-center justify-center mb-6">
+          <div className="w-24 h-24 bg-white rounded-[40px] flex items-center justify-center mb-8 shadow-xl border border-gray-50 relative overflow-hidden">
+            <div className="absolute inset-0 bg-brand/5 animate-pulse" />
             {activeTab === 'following' && !auth.currentUser ? (
-              <AlertCircle size={32} className="text-gray-200" />
+              <AlertCircle size={40} className="text-brand/20 relative z-10" />
             ) : (
-              <PlusCircle size={32} className="text-gray-200" />
+              <PlusCircle size={40} className="text-brand/20 relative z-10" />
             )}
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-6 leading-relaxed">
+          <p className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-400 mb-8 leading-relaxed max-w-xs">
             {activeTab === 'following' && !auth.currentUser 
               ? "Kelangan mo munang mag-sign in \npara makita ang flex ng tropa mo."
-              : "Walang flex dito sa ngayon..."}
+              : "Walang flex dito sa ngayon lods. Be the first to trend!"}
           </p>
           
           {activeTab === 'following' && !auth.currentUser ? (
             <button 
               onClick={onOrderClick}
-              className="btn-primary w-full shadow-brand/20"
+              className="btn-primary px-12 py-5 shadow-brand/20 group"
             >
-              Sign In to Follow
+              <span className="group-hover:scale-105 transition-transform inline-block">Sign In to Follow</span>
             </button>
           ) : (
-            <p className="text-[9px] font-bold text-gray-200 uppercase tracking-[0.3em]">
-              Maging una sa pag-flex!
-            </p>
+            <button onClick={() => navigate('/post')} className="text-[10px] font-black text-brand uppercase tracking-[0.4em] hover:opacity-70 transition-opacity border-b-2 border-brand/20 pb-1">
+              Start Flexing Now
+            </button>
           )}
         </div>
       ) : (
-        <div className="tiktok-scroll custom-scrollbar pb-[100px]">
-          {posts.map((post) => (
-            <div key={post.id} className="tiktok-snap-start mb-2 sm:mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 pb-[120px] pt-2">
+          {posts.map((post, idx) => (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: idx % 3 * 0.1 }}
+              key={post.id} 
+              className="mb-0 sm:mb-2"
+            >
               <PostCard 
                 id={post.id}
                 user={{ 
@@ -249,14 +251,15 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
                 mediaType={post.mediaType}
                 onOrderClick={onOrderClick}
               />
-            </div>
+            </motion.div>
           ))}
           
-          <div className="py-12 text-center tiktok-snap-start">
-            <p className="text-[10px] font-black uppercase tracking-[.4em] text-gray-300">
+          <div className="col-span-full py-16 text-center">
+            <div className="w-12 h-1 bg-gray-200 mx-auto mb-8 rounded-full opacity-30" />
+            <p className="text-[11px] font-black uppercase tracking-[.6em] text-gray-300">
               Degz Enterprises &copy; 2026
             </p>
-            <p className="text-[8px] font-bold text-gray-200 mt-1 uppercase">Tambayan Hub Legit Marketplace</p>
+            <p className="text-[9px] font-bold text-gray-200 mt-2 uppercase tracking-widest">Tambayan Hub Legit Marketplace</p>
           </div>
         </div>
       )}
