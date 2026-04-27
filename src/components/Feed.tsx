@@ -108,7 +108,7 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
         </div>
       </div>
 
-      {/* Stories / Highlights Bar (TikTok Style) */}
+      {/* Stories / Highlights Bar */}
       <div className="py-4 border-b border-gray-100 flex gap-4 overflow-x-auto custom-scrollbar bg-white px-2">
         <div className="flex flex-col items-center gap-1.5 shrink-0 ml-2">
           <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-300 p-0.5 relative group cursor-pointer hover:border-brand transition-colors">
@@ -121,6 +121,22 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
           </div>
           <span className="text-[10px] font-bold text-gray-500">Add Story</span>
         </div>
+        
+        {/* Render active stories from users in the feed */}
+        {Array.from(new Set(posts.map(p => p.userId))).slice(0, 8).map((uid) => {
+          const userPost = posts.find(p => p.userId === uid);
+          if (!userPost || uid === 'system') return null;
+          return (
+            <div key={uid} className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer">
+              <div className="w-16 h-16 rounded-full border-[3px] border-brand p-0.5 relative group transition-transform hover:scale-105">
+                <div className="w-full h-full rounded-full bg-gray-50 flex items-center justify-center overflow-hidden">
+                   <img src={userPost.userAvatar} className="w-full h-full object-cover" alt={userPost.userName} />
+                </div>
+              </div>
+              <span className="text-[10px] font-bold text-gray-900 truncate w-16 text-center">{userPost.userHandle || userPost.userName}</span>
+            </div>
+          );
+        })}
       </div>
 
       <div className="w-full max-w-lg mx-auto">

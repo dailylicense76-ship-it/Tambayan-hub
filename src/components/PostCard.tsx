@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ShoppingBag, Heart, MessageCircle, Share2, MoreHorizontal, 
-  Megaphone, UserPlus, UserCheck, MessageSquare, Send, X,
-  AlertCircle, Eye, BarChart3, Download
+  Megaphone, UserPlus, ShieldCheck, MessageSquare, Send, X,
+  AlertCircle, Eye, BarChart3, Download, Coins, Bookmark, Star
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { auth } from '../lib/firebase';
@@ -40,6 +40,7 @@ interface PostProps {
 
 export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, stats: initialStats, onOrderClick, mediaType = 'image' }) => {
   const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [orderLoading, setOrderLoading] = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -114,6 +115,9 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
         // Check liked
         const liked = await firebaseService.isLiked(id, auth.currentUser.uid);
         setIsLiked(!!liked);
+        // Check saved
+        const saved = await firebaseService.isPostSaved(auth.currentUser.uid, id);
+        setIsSaved(!!saved);
       }
     };
     checkStatus();
@@ -128,6 +132,16 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
       return () => unsub();
     }
   }, [id, showComments]);
+
+  const handleSave = async () => {
+    if (!auth.currentUser) return onOrderClick?.();
+    try {
+      const isNowSaved = await firebaseService.toggleSavePost(auth.currentUser.uid, id);
+      setIsSaved(isNowSaved);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const handleOrder = async () => {
     const currentUser = auth.currentUser;
@@ -166,6 +180,13 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
     try {
       await firebaseService.toggleFollow(auth.currentUser.uid, user.uid);
       setIsFollowing(!isFollowing);
+      if (!isFollowing) {
+        await firebaseService.sendNotification(user.uid, 'follow', {
+          fromId: auth.currentUser.uid,
+          fromName: auth.currentUser.displayName,
+          fromAvatar: auth.currentUser.photoURL
+        });
+      }
     } catch (error) {
       console.error(error);
     }
@@ -177,6 +198,14 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
       await firebaseService.toggleLike(id, auth.currentUser.uid);
       setIsLiked(!isLiked);
       setLocalStats(prev => ({ ...prev, likes: prev.likes + (isLiked ? -1 : 1) }));
+      
+      if (!isLiked && user.uid !== auth.currentUser.uid) {
+        await firebaseService.sendNotification(user.uid, 'like', {
+          fromId: auth.currentUser.uid,
+          fromName: auth.currentUser.displayName,
+          postId: id
+        });
+      }
     } catch (error) {
       console.error(error);
     }
@@ -194,6 +223,15 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
         text: commentText.trim()
       });
       setCommentText('');
+      
+      if (user.uid !== auth.currentUser.uid) {
+        await firebaseService.sendNotification(user.uid, 'comment', {
+          fromId: auth.currentUser.uid,
+          fromName: auth.currentUser.displayName,
+          postId: id,
+          text: commentText.substring(0, 50)
+        });
+      }
     } catch (error) {
       console.error(error);
     }
@@ -237,6 +275,37 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
         alert('Link copied to clipboard! Share it with your friends.');
       } catch (err) {
         console.error('Copy failed:', err);
+      }
+    }
+  };
+
+  const handleGift = async () => {
+    if (!auth.currentUser) return onOrderClick?.();
+    if (user.uid === auth.currentUser.uid) {
+      alert("You can't gift your own post.");
+      return;
+    }
+    
+    const amount = 10; // Default gift amount
+    if (window.confirm(`Gusto mo bang mag-send ng ${amount} Tambayan Coins kay ${user.name}?`)) {
+      try {
+        await firebaseService.sendGift(auth.currentUser.uid, user.uid, amount);
+        alert(`Successfully sent ${amount} coins! Maraming salamat!`);
+        setShowHeartPattern(true);
+        setTimeout(() => setShowHeartPattern(false), 800);
+        
+        await firebaseService.sendNotification(user.uid, 'gift', {
+          fromId: auth.currentUser.uid,
+          fromName: auth.currentUser.displayName,
+          amount: amount
+        });
+      } catch (error: any) {
+        console.error(error);
+        if (error.message.includes('Insufficient')) {
+          alert('Insufficient Tambayan Coins! Mag top-up sa Profile mo.');
+        } else {
+          alert('Failed to send gift. Try again later.');
+        }
       }
     }
   };
@@ -296,14 +365,19 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
             <div>
               <div className="flex items-center gap-1">
                 <h3 className="font-bold text-[14px] text-gray-900 leading-none">{user.name}</h3>
-                {user.handle === 'tambayan_ads' && (
-                  <UserCheck size={14} className="text-blue-500" />
+                {commerce?.isSelling && (
+                  <div className="flex items-center ml-1 text-[10px] text-brand bg-brand/10 px-1 py-0.5 rounded font-black uppercase tracking-tighter" title="Legit Seller Badge">
+                    <ShieldCheck size={12} className="mr-0.5" /> Legit
+                  </div>
                 )}
                 {commerce?.isSponsored && (
                   <span className="ml-1 text-[9px] bg-brand/10 text-brand px-1.5 py-[1px] rounded bg-white border border-brand/20 font-black uppercase tracking-tighter">Ad</span>
                 )}
               </div>
-              <p className="text-[12px] text-gray-500 font-medium">@{user.handle}</p>
+              <p className="text-[12px] text-gray-500 font-medium flex items-center gap-1">
+                @{user.handle}
+                {commerce?.isSelling && <span className="text-[10px] text-yellow-500 flex items-center"><Star size={10} className="fill-yellow-500 mr-0.5"/> 4.9</span>}
+              </p>
             </div>
           </div>
           
@@ -408,13 +482,29 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
                 <Share2 size={26} className="transition-transform group-active:scale-90" />
                 <span className="text-[13px] font-bold">{localStats.shares || 0}</span>
               </button>
+              <button 
+                onClick={handleGift}
+                className="flex items-center gap-1.5 text-orange-500 hover:text-orange-600 transition-colors group ml-2"
+                title="Send Gift"
+              >
+                <Coins size={26} className="transition-transform group-active:scale-90 fill-orange-200" />
+                <span className="text-[13px] font-bold">10</span>
+              </button>
             </div>
 
             <div className="flex items-center gap-3">
+              <button 
+                onClick={handleSave}
+                className={cn("transition-colors group", isSaved ? "text-brand" : "text-gray-500 hover:text-brand")}
+                title="Save for Later"
+              >
+                <Bookmark size={24} fill={isSaved ? "currentColor" : "none"} className="transition-transform group-active:scale-90" />
+              </button>
               {auth.currentUser?.uid !== user.uid && (
                 <button 
                   onClick={handleMessage}
                   className="text-gray-500 hover:text-brand transition-colors bg-gray-100 p-2 rounded-full"
+                  title="Direct Message"
                 >
                   <MessageSquare size={18} />
                 </button>

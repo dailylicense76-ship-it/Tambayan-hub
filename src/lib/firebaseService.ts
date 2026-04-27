@@ -13,7 +13,8 @@ import {
   deleteDoc,
   serverTimestamp, 
   Timestamp,
-  updateDoc
+  updateDoc,
+  limit
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import imageCompression from 'browser-image-compression';
@@ -392,6 +393,108 @@ export const firebaseService = {
     });
   },
 
+  // Saved / Wishlist
+  async toggleSavePost(userId: string, postId: string) {
+    const savedRef = doc(db, 'users', userId, 'saved', postId);
+    try {
+      const docSnap = await getDoc(savedRef);
+      if (docSnap.exists()) {
+        await deleteDoc(savedRef);
+        return false;
+      } else {
+        await setDoc(savedRef, { createdAt: serverTimestamp() });
+        return true;
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `users/${userId}/saved/${postId}`);
+      throw error;
+    }
+  },
+
+  async isPostSaved(userId: string, postId: string) {
+    const savedRef = doc(db, 'users', userId, 'saved', postId);
+    try {
+      const docSnap = await getDoc(savedRef);
+      return docSnap.exists();
+    } catch (error) {
+      return false;
+    }
+  },
+
+  // Notifications
+  subscribeNotifications(userId: string, callback: (notifications: any[]) => void) {
+    const notificationsRef = collection(db, 'users', userId, 'notifications');
+    const q = query(notificationsRef, orderBy('createdAt', 'desc'), limit(20));
+    
+    return onSnapshot(q, (snapshot) => {
+      const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      callback(notifications);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `users/${userId}/notifications`);
+    });
+  },
+
+  async sendNotification(userId: string, type: 'like' | 'comment' | 'follow' | 'gift', data: any) {
+    if (!userId) return;
+    const notificationsRef = collection(db, 'users', userId, 'notifications');
+    try {
+      await addDoc(notificationsRef, {
+        type,
+        ...data,
+        read: false,
+        createdAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Failed to send notification", error);
+    }
+  },
+
+  // Wallet & Gifting
+  subscribeWallet(userId: string, callback: (balance: number) => void) {
+    const walletRef = doc(db, 'users', userId, 'wallet', 'balance');
+    return onSnapshot(walletRef, (docSnap) => {
+      if (docSnap.exists()) {
+        callback(docSnap.data().coins || 0);
+      } else {
+        callback(0);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `users/${userId}/wallet`);
+    });
+  },
+
+  async topUpWallet(userId: string, amount: number) {
+    const walletRef = doc(db, 'users', userId, 'wallet', 'balance');
+    try {
+      const docSnap = await getDoc(walletRef);
+      const currentCoins = docSnap.exists() ? (docSnap.data().coins || 0) : 0;
+      await setDoc(walletRef, { coins: currentCoins + amount, updatedAt: serverTimestamp() });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `users/${userId}/wallet/balance`);
+    }
+  },
+
+  async sendGift(senderId: string, receiverId: string, amount: number) {
+    // In a real app, use Firestore Transactions to safely deduct and add
+    const senderWalletRef = doc(db, 'users', senderId, 'wallet', 'balance');
+    const receiverWalletRef = doc(db, 'users', receiverId, 'wallet', 'balance');
+    
+    try {
+      const senderSnap = await getDoc(senderWalletRef);
+      const senderCoins = senderSnap.exists() ? (senderSnap.data().coins || 0) : 0;
+      
+      if (senderCoins < amount) throw new Error("Insufficient coins");
+      
+      const receiverSnap = await getDoc(receiverWalletRef);
+      const receiverCoins = receiverSnap.exists() ? (receiverSnap.data().coins || 0) : 0;
+      
+      await setDoc(senderWalletRef, { coins: senderCoins - amount, updatedAt: serverTimestamp() });
+      await setDoc(receiverWalletRef, { coins: receiverCoins + amount, updatedAt: serverTimestamp() });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'gift_transaction');
+    }
+  },
+  
   subscribeAllOrders(callback: (orders: any[]) => void) {
     const ordersRef = collection(db, 'orders');
     const q = query(ordersRef, orderBy('createdAt', 'desc'));

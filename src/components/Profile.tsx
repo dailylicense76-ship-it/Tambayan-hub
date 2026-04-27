@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Package, Grid, CheckCircle2, Truck, AlertCircle, ShieldCheck, LogOut, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Package, Grid, CheckCircle2, Truck, AlertCircle, ShieldCheck, LogOut, Users, Coins, Plus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth, db } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -13,6 +13,7 @@ export const Profile: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [stats, setStats] = useState({ following: 0, followers: 0 });
+  const [coins, setCoins] = useState(0);
   const user = auth.currentUser;
   const navigate = useNavigate();
 
@@ -44,12 +45,25 @@ export const Profile: React.FC = () => {
       });
     };
 
+    const unsubWallet = firebaseService.subscribeWallet(user.uid, setCoins);
+
     loadData();
+
+    return () => unsubWallet();
   }, [user, navigate]);
 
   const handleLogout = async () => {
     await signOut(auth);
     navigate('/');
+  };
+
+  const handleTopUp = async () => {
+    if (!user) return;
+    const amount = parseInt(prompt("Enter amount to top up (e.g. 100):") || "0", 10);
+    if (amount > 0) {
+      await firebaseService.topUpWallet(user.uid, amount);
+      alert(`Successfully added ${amount} Tambayan Coins!`);
+    }
   };
 
   const handleUpdateStatus = async (orderId: string) => {
@@ -88,7 +102,27 @@ export const Profile: React.FC = () => {
           <CheckCircle2 size={12} className="text-brand" />
         </p>
 
-        <div className="flex gap-8 mb-8">
+        {/* Wallet Section */}
+        <div className="w-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl p-4 mb-8 text-white shadow-lg relative overflow-hidden">
+          <div className="absolute -right-4 -top-4 opacity-10">
+             <Coins size={100} />
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Tambayan Balance</p>
+          <div className="flex justify-between items-end">
+            <h3 className="text-3xl font-black tracking-tighter flex items-center gap-2">
+              <Coins size={24} className="fill-yellow-300 text-yellow-500" />
+              {coins.toLocaleString()}
+            </h3>
+            <button 
+              onClick={handleTopUp}
+              className="bg-white text-orange-600 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1 shadow-sm hover:scale-105 transition-transform"
+            >
+              <Plus size={14} /> Top Up
+            </button>
+          </div>
+        </div>
+
+        <div className="flex gap-8 mb-8 w-full justify-center">
           <div className="text-center">
             <p className="text-lg font-black tracking-tighter text-gray-900">{stats.followers}</p>
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Followers</p>
