@@ -7,7 +7,7 @@ import { auth } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 
-export const CreatePost: React.FC = () => {
+export const CreatePost: React.FC<{ onStartBackgroundUpload?: (file: File, postData: any) => void }> = ({ onStartBackgroundUpload }) => {
   const [text, setText] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -33,49 +33,44 @@ export const CreatePost: React.FC = () => {
     if (!auth.currentUser) return alert('Please log in to share a flex!');
     if (!text || !file) return alert('Please add a description and select a photo or video');
 
+    const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
+    const postPayload: any = {
+      userId: auth.currentUser.uid,
+      userName: auth.currentUser.displayName || 'Legit Seller',
+      userHandle: auth.currentUser.email?.split('@')[0],
+      userAvatar: auth.currentUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${auth.currentUser.uid}`,
+      mediaType,
+      text: text,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (isSelling) {
+      postPayload.commerce = {
+        price: parseFloat(price) || 0,
+        itemName: itemName || 'Untitled Item',
+        isSelling: true
+      };
+    }
+
+    if (onStartBackgroundUpload) {
+      onStartBackgroundUpload(file, postPayload);
+      navigate('/');
+      return;
+    }
+
+    // Fallback if no bg handler
     setLoading(true);
     setUploadProgress(0);
     try {
-      console.log('Initiating upload for:', file.name);
-      // 1. Upload File
       const downloadUrl = await firebaseService.uploadFile(file, 'posts', (progress) => {
-        const rounded = Math.round(progress);
-        console.log('Upload state progress:', rounded);
-        setUploadProgress(rounded);
+        setUploadProgress(Math.round(progress));
       });
-      
-      console.log('Upload successful, URL:', downloadUrl);
-      setUploadProgress(95); // Almost there
-      
-      const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
-      const postPayload: any = {
-        userId: auth.currentUser.uid,
-        userName: auth.currentUser.displayName || 'Legit Seller',
-        userHandle: auth.currentUser.email?.split('@')[0],
-        userAvatar: auth.currentUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${auth.currentUser.uid}`,
-        mediaType,
-        image: downloadUrl as string,
-        text: text,
-      };
-
-      if (isSelling) {
-        postPayload.commerce = {
-          price: parseFloat(price) || 0,
-          itemName: itemName || 'Untitled Item',
-          isSelling: true
-        };
-      }
-      
-      await firebaseService.createPost(postPayload);
-      
+      await firebaseService.createPost({ ...postPayload, image: downloadUrl });
       navigate('/');
     } catch (error) {
-      console.error(error);
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      alert(`Failed to post: ${message}. Check your connection or file size.`);
+      alert('Failed to post');
     } finally {
       setLoading(false);
-      setUploadProgress(0);
     }
   };
 

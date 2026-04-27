@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from './lib/firebase';
 import { Navbar } from './components/Navbar';
 import { BottomNav } from './components/BottomNav';
 import { Feed } from './components/Feed';
@@ -18,10 +17,10 @@ import { ChatWindow } from './components/ChatWindow';
 import { PostView } from './components/PostView';
 import { Live } from './components/Live';
 import { doc, getDocFromServer } from 'firebase/firestore';
-import { db } from './lib/firebase';
+import { db, auth } from './lib/firebase';
 import { cn } from './lib/utils';
+import { firebaseService } from './lib/firebaseService';
 import { AlertCircle, X, Package, Home, Search, Radio, ShoppingBag } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 const RequireAuth: React.FC<{ children: React.ReactNode; user: User | null; loading: boolean; onRequireAuth: () => void }> = ({ children, user, loading, onRequireAuth }) => {
   const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false);
@@ -87,6 +86,8 @@ const AppContent: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  const [uploadIndicator, setUploadIndicator] = useState<{ progress: number; active: boolean }>({ progress: 0, active: false });
+
   const handleOrderClick = () => {
     if (!user) {
       setIsAuthModalOpen(true);
@@ -95,7 +96,21 @@ const AppContent: React.FC = () => {
     }
   };
 
-
+  const startBackgroundUpload = async (file: File, postData: any) => {
+    setUploadIndicator({ progress: 5, active: true });
+    try {
+      const url = await firebaseService.uploadFile(file, 'posts', (p) => {
+        setUploadIndicator({ progress: Math.max(5, Math.min(95, Math.round(p))), active: true });
+      });
+      await firebaseService.createPost({ ...postData, mediaUrl: url });
+      setUploadIndicator({ progress: 100, active: true });
+      setTimeout(() => setUploadIndicator({ progress: 0, active: false }), 4000);
+    } catch (error) {
+      console.error('BG Upload Failed:', error);
+      setUploadIndicator({ progress: 0, active: false });
+      alert('Upload failed in background.');
+    }
+  };
 
   if (loading) {
     return (
@@ -157,7 +172,7 @@ const AppContent: React.FC = () => {
                   <Route path="/activity" element={<Activity />} />
                   <Route path="/live" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><Live /></RequireAuth>} />
                   <Route path="/chats" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><ChatList /></RequireAuth>} />
-                  <Route path="/post" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><CreatePost /></RequireAuth>} />
+                  <Route path="/post" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><CreatePost onStartBackgroundUpload={startBackgroundUpload} /></RequireAuth>} />
                   <Route path="/post/:postId" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><PostView onOrderClick={handleOrderClick} /></RequireAuth>} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/admin" element={<AdminDashboard />} />
@@ -197,6 +212,50 @@ const AppContent: React.FC = () => {
              </div>
           </aside>
         </div>
+
+        {/* Background Progress UI */}
+        <AnimatePresence>
+          {uploadIndicator.active && (
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: -80, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[60] w-full max-w-xs px-4 pointer-events-none"
+            >
+              <div className="bg-black/90 backdrop-blur-xl border border-white/10 rounded-[24px] p-3 flex items-center gap-3 shadow-2xl shadow-brand/20">
+                <div className="relative w-10 h-10 shrink-0">
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle cx="20" cy="20" r="18" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
+                    <circle 
+                      cx="20" 
+                      cy="20" 
+                      r="18" 
+                      fill="none" 
+                      stroke="#FF2D55" 
+                      strokeWidth="3" 
+                      strokeDasharray={113} 
+                      strokeDashoffset={113 - (113 * uploadIndicator.progress) / 100}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-[10px] font-black text-white">{uploadIndicator.progress}%</span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-black text-[10px] uppercase tracking-widest truncate">
+                    {uploadIndicator.progress === 100 ? 'Post Successful!' : 'Flexing in background...'}
+                  </p>
+                  <div className="h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
+                    <div 
+                      className="h-full bg-brand transition-all duration-300" 
+                      style={{ width: `${uploadIndicator.progress}%` }} 
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="absolute bottom-0 w-full z-50">
           <BottomNav />

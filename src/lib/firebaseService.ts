@@ -510,68 +510,41 @@ export const firebaseService = {
   },
 
   async uploadFile(file: File, folder: string = 'posts', onProgress?: (progress: number) => void) {
-    console.log('--- RESILIENT UPLOAD START ---');
-    if (onProgress) onProgress(5);
+    console.log('--- FAST UPLOAD START ---');
+    if (onProgress) onProgress(10);
     
     let fileToUpload = file;
     
-    // 1. COMPRESSION (Images only)
+    // 1. FAST COMPRESSION (Aggressive for speed)
     if (file.type.startsWith('image/')) {
       try {
-        console.log('Compressing...');
-        if (onProgress) onProgress(15);
         const options = {
-          maxSizeMB: 0.1, // Very small for free tier
+          maxSizeMB: 0.05, // 50KB limit for super fast upload
           maxWidthOrHeight: 800,
-          useWebWorker: true
+          useWebWorker: true,
+          initialQuality: 0.6
         };
         fileToUpload = await imageCompression(file, options);
-        console.log('Compressed size:', (fileToUpload.size / 1024).toFixed(1), 'KB');
       } catch (err) {
-        console.warn('Compression failed, using original', err);
+        console.warn('Compression skipped', err);
       }
     }
 
     if (onProgress) onProgress(30);
 
-    const timestamp = Date.now();
-    const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_').slice(-15);
-    const fileName = `${timestamp}_${safeName}`;
+    const fileName = `${Date.now()}_flex`; // Short name
     const storageRef = ref(storage, `${folder}/${fileName}`);
     
     try {
-      console.log('Starting uploadBytes...');
       const snapshot = await uploadBytes(storageRef, fileToUpload);
-      console.log('Upload complete');
-      if (onProgress) onProgress(85);
+      if (onProgress) onProgress(80);
       
       const downloadURL = await getDownloadURL(snapshot.ref);
       if (onProgress) onProgress(100);
       return downloadURL;
     } catch (error: any) {
-      console.error('Storage Upload Error Detail:', error);
-      
-      // Detailed error translation for user
-      let errorMessage = 'Upload failed';
-      if (error && error.code) {
-        switch (error.code) {
-          case 'storage/unauthorized':
-            errorMessage = 'Permission denied (Storage). Make sure you are logged in and your email is verified.';
-            break;
-          case 'storage/quota-exceeded':
-            errorMessage = 'Storage quota exceeded. Free tier limit reached.';
-            break;
-          case 'storage/canceled':
-            errorMessage = 'Upload canceled.';
-            break;
-          case 'storage/unknown':
-            errorMessage = `Unknown storage error: ${error.message}`;
-            break;
-          default:
-            errorMessage = `Error [${error.code}]: ${error.message}`;
-        }
-      }
-      throw new Error(errorMessage);
+      console.error('Storage Upload Error:', error);
+      throw error;
     }
   }
 };
