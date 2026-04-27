@@ -25,6 +25,14 @@ export const Live: React.FC = () => {
 
   const user = auth.currentUser;
 
+  // Sync video ref with stream
+  useEffect(() => {
+    if (videoRef.current && localStreamRef.current && videoRef.current.srcObject !== localStreamRef.current) {
+      videoRef.current.srcObject = localStreamRef.current;
+      videoRef.current.play().catch(console.error);
+    }
+  });
+
   // Initialize Stream (Host or Viewer)
   useEffect(() => {
     if (!user) return;
@@ -205,12 +213,6 @@ export const Live: React.FC = () => {
        </div>
     );
   }
-
-  useEffect(() => {
-    if (videoRef.current && localStreamRef.current && videoRef.current.srcObject !== localStreamRef.current) {
-      videoRef.current.srcObject = localStreamRef.current;
-    }
-  });
 
   return (
     <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center">
