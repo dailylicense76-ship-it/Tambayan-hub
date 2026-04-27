@@ -16,7 +16,7 @@ import {
   updateDoc,
   limit
 } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, uploadBytes, getDownloadURL } from 'firebase/storage';
 import imageCompression from 'browser-image-compression';
 
 export enum OperationType {
@@ -510,86 +510,37 @@ export const firebaseService = {
   },
 
   async uploadFile(file: File, folder: string = 'posts', onProgress?: (progress: number) => void) {
-    console.log('Starting upload for:', file.name, 'size:', file.size);
-    console.log('Auth check:', auth.currentUser ? `User logged in: ${auth.currentUser.uid}` : 'No user logged in!');
-    console.log('Storage config:', storage.app.options.storageBucket);
+    console.log('--- UPLOAD START ---');
+    console.log('File:', file.name, '(' + (file.size / 1024).toFixed(2) + ' KB)');
+    console.log('Auth:', auth.currentUser?.uid || 'NONE');
     
-    let fileToUpload = file;
-    
-    if (file.type.startsWith('image/')) {
-      try {
-        console.log('Compressing image...');
-        if (onProgress) onProgress(2); // Indicate activity
-        const options = {
-          maxSizeMB: 0.5,
-          maxWidthOrHeight: 1080,
-          useWebWorker: false,
-          initialQuality: 0.8
-        };
-        if (file.size > 1024 * 512) {
-          fileToUpload = await imageCompression(file, options);
-          console.log('Compression complete. New size:', fileToUpload.size);
-          if (onProgress) onProgress(5);
-        } else {
-          console.log('File small enough, skipping compression.');
-          if (onProgress) onProgress(5);
-        }
-      } catch (error) {
-        console.error('Compression Error:', error);
-      }
-    } else if (file.type.startsWith('video/')) {
-      if (onProgress) onProgress(5);
-    }
+    // Simulate initial progress to show activity
+    if (onProgress) onProgress(10);
 
-    const fileName = `${Date.now()}_${fileToUpload.name.replace(/\s+/g, '_')}`;
+    const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
     const storageRef = ref(storage, `${folder}/${fileName}`);
     
-    console.log('Initializing Firebase Storage uploadTask...');
-    return new Promise((resolve, reject) => {
-      try {
-        const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
-        
-        // Safety timeout for the upload to start
-        const timeout = setTimeout(() => {
-          if (uploadTask.snapshot.bytesTransferred === 0) {
-            console.warn('Upload hasn\'t started after 10s. Forcing progress update.');
-            if (onProgress) onProgress(10);
-          }
-        }, 10000);
-
-        uploadTask.on(
-          'state_changed',
-          (snapshot) => {
-            // Map the remaining 95% of progress after the initial 5%
-            const rawProgress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            const adjustedProgress = 5 + (rawProgress * 0.95);
-            
-            console.log('Upload progress:', rawProgress.toFixed(2) + '% (Adjusted: ' + adjustedProgress.toFixed(2) + '%)');
-            if (onProgress) onProgress(adjustedProgress);
-          },
-          (error) => {
-            clearTimeout(timeout);
-            console.error('Firebase Storage Upload Task Error:', error);
-            reject(error);
-          },
-          async () => {
-            clearTimeout(timeout);
-            try {
-              console.log('Upload finished, getting download URL...');
-              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-              if (onProgress) onProgress(100);
-              console.log('File available at:', downloadURL);
-              resolve(downloadURL);
-            } catch (err) {
-              console.error('Error getting download URL:', err);
-              reject(err);
-            }
-          }
-        );
-      } catch (err) {
-        console.error('Error starting uploadTask:', err);
-        reject(err);
+    try {
+      console.log('Starting direct uploadBytes...');
+      // Using uploadBytes instead of uploadBytesResumable for maximum compatibility
+      const snapshot = await uploadBytes(storageRef, file);
+      console.log('Upload successful! Metadata:', snapshot.metadata);
+      
+      if (onProgress) onProgress(80);
+      
+      console.log('Getting download URL...');
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      console.log('Success! URL:', downloadURL);
+      
+      if (onProgress) onProgress(100);
+      return downloadURL;
+    } catch (error) {
+      console.error('CRITICAL UPLOAD ERROR:', error);
+      // Re-throw with more detail if possible
+      if (error && typeof error === 'object' && 'code' in error) {
+        throw new Error(`Upload Failed [${error.code}]: ${(error as any).message}`);
       }
-    });
+      throw error;
+    }
   }
 };
