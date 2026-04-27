@@ -20,6 +20,7 @@ export const Live: React.FC = () => {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const hasInitializedStream = useRef(false);
 
   const user = auth.currentUser;
 
@@ -27,7 +28,8 @@ export const Live: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    if (mode === 'host' && !currentStreamId) {
+    if (mode === 'host' && !currentStreamId && !hasInitializedStream.current) {
+      hasInitializedStream.current = true;
       // Setup WebCam and Create Stream Doc
       const startHost = async () => {
         try {
@@ -38,18 +40,28 @@ export const Live: React.FC = () => {
             videoRef.current.play().catch(console.error);
           }
           
-          const newStreamRef = await addDoc(collection(db, 'liveStreams'), {
+          const streamRef = doc(db, 'liveStreams', user.uid);
+          await setDoc(streamRef, {
             hostId: user.uid,
             hostName: user.displayName,
             hostPhoto: user.photoURL,
             title: `${user.displayName}'s Top Flex`,
             status: 'live',
             viewerCount: 0,
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
+            updatedAt: Date.now()
           });
-          setCurrentStreamId(newStreamRef.id);
+          setCurrentStreamId(user.uid);
           setHostDetails({ name: user.displayName, photo: user.photoURL });
           setIsInitializing(false);
+
+          // Heartbeat
+          const heartbeatMsg = setInterval(() => {
+            updateDoc(streamRef, { updatedAt: Date.now() }).catch(console.error);
+          }, 10000);
+          
+          // @ts-ignore
+          window.liveStreamHeartbeat = heartbeatMsg;
         } catch (error) {
           console.error("Camera access denied or unavailable", error);
           alert("Could not access camera for Live Stream.");
@@ -65,6 +77,11 @@ export const Live: React.FC = () => {
     return () => {
        if (localStreamRef.current) {
          localStreamRef.current.getTracks().forEach(track => track.stop());
+       }
+       if (mode === 'host' && currentStreamId) {
+         updateDoc(doc(db, 'liveStreams', currentStreamId), { status: 'ended' }).catch(console.error);
+         // @ts-ignore
+         if (window.liveStreamHeartbeat) clearInterval(window.liveStreamHeartbeat);
        }
     };
   }, [mode, user, currentStreamId, navigate]);

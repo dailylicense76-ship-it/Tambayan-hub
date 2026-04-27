@@ -16,7 +16,14 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'for-you' | 'following'>('for-you');
   const [followedIds, setFollowedIds] = useState<string[]>([]);
+  const [tick, setTick] = useState(Date.now());
   const navigate = useNavigate();
+
+  // Force re-render every 5 seconds to actively filter dead streams from the UI
+  useEffect(() => {
+    const timer = setInterval(() => setTick(Date.now()), 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let unsubscribe: () => void = () => {};
@@ -51,7 +58,20 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
     const q = query(collection(db, 'liveStreams'), where('status', '==', 'live'));
     const unsub = onSnapshot(q, (snap) => {
        const streams = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-       setLiveStreams(streams);
+       
+       // Filter out old "ghost" duplicates created by addDoc (where id != hostId)
+       // and deduplicate by hostId just to be completely safe.
+       // ALSO filter by heartbeat (updatedAt must be within last 20 seconds)
+       const now = Date.now();
+       const validStreams = streams.filter(s => {
+         // Streams without updatedAt are from the old bugged schema, hide them
+         const isRecent = s.updatedAt ? (now - s.updatedAt < 20000) : false;
+         return s.id === s.hostId && isRecent;
+       });
+       
+       const uniqueStreams = Array.from(new Map(validStreams.map(s => [s.hostId, s])).values());
+       
+       setLiveStreams(uniqueStreams);
     }, (error) => {
       console.error("Error in live streams onSnapshot:", error);
     });
@@ -140,7 +160,7 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
         </div>
         
         {/* Render active Live Streams */}
-        {liveStreams.map((stream) => (
+        {liveStreams.filter(stream => stream.updatedAt && (tick - stream.updatedAt < 20000)).map((stream) => (
           <div key={stream.id} className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer" onClick={() => navigate(`/live?streamId=${stream.id}&mode=viewer`)}>
             <div className="w-16 h-16 rounded-full border-[3px] border-red-500 p-0.5 relative group transition-transform hover:scale-105 shadow-md shadow-red-500/20">
               <div className="w-full h-full rounded-full bg-gray-50 flex items-center justify-center overflow-hidden border border-white">

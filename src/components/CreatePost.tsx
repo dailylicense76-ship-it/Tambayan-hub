@@ -236,6 +236,43 @@ export const CreatePost: React.FC = () => {
           )}
         </button>
       </form>
+
+      <AnimatePresence>
+        {loading && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center p-6"
+          >
+            <div className="w-full max-w-xs bg-white rounded-[32px] p-8 shadow-2xl flex flex-col items-center justify-center gap-4 border border-gray-100">
+              <div className="relative w-20 h-20">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                  <circle className="text-gray-100 stroke-current" strokeWidth="8" cx="50" cy="50" r="40" fill="transparent"></circle>
+                  <circle 
+                    className="text-brand stroke-current transition-all duration-300 ease-out" 
+                    strokeWidth="8" 
+                    strokeLinecap="round" 
+                    cx="50" 
+                    cy="50" 
+                    r="40" 
+                    fill="transparent" 
+                    strokeDasharray={251.2} 
+                    strokeDashoffset={251.2 - (251.2 * uploadProgress) / 100}
+                  ></circle>
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-sm font-black text-gray-900">{uploadProgress}%</span>
+                </div>
+              </div>
+              <h3 className="text-lg font-black text-gray-900 tracking-tighter">Uploading Flex...</h3>
+              <p className="text-xs font-bold text-gray-400 text-center uppercase tracking-widest leading-relaxed">
+                Please don't close or switch tabs while we process your post.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

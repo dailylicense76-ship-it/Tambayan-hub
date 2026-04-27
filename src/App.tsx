@@ -21,6 +21,42 @@ import { doc, getDocFromServer } from 'firebase/firestore';
 import { db } from './lib/firebase';
 import { AlertCircle, X, Package } from 'lucide-react';
 
+const RequireAuth: React.FC<{ children: React.ReactNode; user: User | null; loading: boolean; onRequireAuth: () => void }> = ({ children, user, loading, onRequireAuth }) => {
+  const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false);
+
+  useEffect(() => {
+    if (!user && !loading && !hasAttemptedAuth) {
+      onRequireAuth();
+      setHasAttemptedAuth(true);
+    }
+  }, [user, loading, hasAttemptedAuth, onRequireAuth]);
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center h-[70vh] bg-white">
+        <div className="w-20 h-20 bg-gray-50 rounded-[32px] flex items-center justify-center mb-6 border border-gray-100">
+           <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
+             <AlertCircle size={32} className="text-gray-200" />
+           </motion.div>
+        </div>
+        <p className="text-gray-400 mb-6 tracking-widest text-[10px] uppercase font-black leading-relaxed">
+          Oops! Kelangan mo munang <br/> mag-sign in lods.
+        </p>
+        <button 
+          onClick={onRequireAuth} 
+          className="btn-primary w-full shadow-brand/20"
+        >
+          Sign In Now
+        </button>
+        <Link to="/" className="mt-4 text-[10px] font-black text-gray-300 uppercase tracking-widest hover:text-brand transition-colors">
+          Balik muna ako sa Feed
+        </Link>
+      </div>
+    );
+  }
+  return <>{children}</>;
+};
+
 const AppContent: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
@@ -56,41 +92,7 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false);
 
-    useEffect(() => {
-      if (!user && !loading && !hasAttemptedAuth) {
-        setIsAuthModalOpen(true);
-        setHasAttemptedAuth(true);
-      }
-    }, [user, loading, hasAttemptedAuth]);
-
-    if (!user) {
-      return (
-        <div className="flex flex-col items-center justify-center p-12 text-center h-[70vh] bg-white">
-          <div className="w-20 h-20 bg-gray-50 rounded-[32px] flex items-center justify-center mb-6 border border-gray-100">
-             <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
-               <AlertCircle size={32} className="text-gray-200" />
-             </motion.div>
-          </div>
-          <p className="text-gray-400 mb-6 tracking-widest text-[10px] uppercase font-black leading-relaxed">
-            Oops! Kelangan mo munang <br/> mag-sign in lods.
-          </p>
-          <button 
-            onClick={() => setIsAuthModalOpen(true)} 
-            className="btn-primary w-full shadow-brand/20"
-          >
-            Sign In Now
-          </button>
-          <Link to="/" className="mt-4 text-[10px] font-black text-gray-300 uppercase tracking-widest hover:text-brand transition-colors">
-            Balik muna ako sa Feed
-          </Link>
-        </div>
-      );
-    }
-    return <>{children}</>;
-  };
 
   if (loading) {
     return (
@@ -110,7 +112,7 @@ const AppContent: React.FC = () => {
       <CanvasBackground />
 
       {/* Responsive Wrapper */}
-      <div className="w-full xl:max-w-7xl h-[100dvh] bg-white/60 backdrop-blur-2xl shadow-2xl relative flex flex-col mx-auto overflow-hidden">
+      <div className="w-full sm:max-w-md md:max-w-lg xl:max-w-2xl h-[100dvh] bg-white/95 backdrop-blur-2xl sm:shadow-2xl relative flex flex-col mx-auto overflow-hidden sm:border-x sm:border-gray-100">
         <div className="flex-shrink-0 z-50 w-full relative bg-white border-b border-gray-100">
           <Navbar onAuthClick={() => setIsAuthModalOpen(true)} />
         </div>
@@ -128,10 +130,10 @@ const AppContent: React.FC = () => {
                 <Route path="/" element={<Feed onOrderClick={handleOrderClick} />} />
                 <Route path="/discover" element={<Discover />} />
                 <Route path="/activity" element={<Activity />} />
-                <Route path="/live" element={<RequireAuth><Live /></RequireAuth>} />
-                <Route path="/chats" element={<RequireAuth><ChatList /></RequireAuth>} />
-                <Route path="/post" element={<RequireAuth><CreatePost /></RequireAuth>} />
-                <Route path="/post/:postId" element={<RequireAuth><PostView onOrderClick={handleOrderClick} /></RequireAuth>} />
+                <Route path="/live" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><Live /></RequireAuth>} />
+                <Route path="/chats" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><ChatList /></RequireAuth>} />
+                <Route path="/post" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><CreatePost /></RequireAuth>} />
+                <Route path="/post/:postId" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><PostView onOrderClick={handleOrderClick} /></RequireAuth>} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/admin" element={<AdminDashboard />} />
               </Routes>
