@@ -8,7 +8,7 @@ service cloud.firestore {
 
     // --- Helpers ---
     function isSignedIn() { return request.auth != null; }
-    function isTrustedAuth() { return request.auth.token.email_verified == true || request.auth.token.phone_number != null; }
+    function isTrustedAuth() { return isSignedIn(); }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     function isAdmin() { 
       return isSignedIn() && (
@@ -47,8 +47,8 @@ service cloud.firestore {
     function isValidPost(data) {
       return data.keys().hasAll(['userId', 'image', 'text', 'createdAt']) &&
              data.userId == request.auth.uid &&
-             data.image is string && data.image.size() <= 1000 &&
-             data.text is string && data.text.size() <= 1000 &&
+             data.image is string && data.image.size() <= 5000 &&
+             data.text is string && data.text.size() <= 5000 &&
              (!('commerce' in data) || (
                data.commerce.keys().hasAll(['isSelling']) &&
                (!('price' in data.commerce) || (data.commerce.price is number && data.commerce.price >= 0))
