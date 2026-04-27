@@ -67,7 +67,8 @@ export const CreatePost: React.FC = () => {
       navigate('/');
     } catch (error) {
       console.error(error);
-      alert('Failed to post. Check your connection or file size.');
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to post: ${message}. Check your connection or file size.`);
     } finally {
       setLoading(false);
       setUploadProgress(0);
