@@ -61,7 +61,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onAuthClick }) => {
 
   const handleGoLive = () => {
     if (!user) return onAuthClick();
-    alert("Live Selling feature is coming soon! Get your items ready to flex!");
+    navigate('/live');
   };
 
   return (

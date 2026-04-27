@@ -43,8 +43,8 @@ service cloud.firestore {
       );
 
       match /wallet/{docId} {
-        allow get, list: if isOwner(userId);
-        allow write: if isOwner(userId) || isAdmin(); // Simplified for demo
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow write: if isSignedIn(); // Simplified for demo to allow gifting & top up
       }
 
       match /saved/{postId} {

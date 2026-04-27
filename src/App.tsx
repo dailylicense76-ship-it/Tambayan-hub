@@ -16,6 +16,7 @@ import { AuthModal } from './components/AuthModal';
 import { CanvasBackground } from './components/CanvasBackground';
 import { ChatWindow } from './components/ChatWindow';
 import { PostView } from './components/PostView';
+import { Live } from './components/Live';
 import { doc, getDocFromServer } from 'firebase/firestore';
 import { db } from './lib/firebase';
 import { AlertCircle } from 'lucide-react';
@@ -109,12 +110,12 @@ const AppContent: React.FC = () => {
       <CanvasBackground />
 
       {/* Responsive Wrapper */}
-      <div className="w-full h-[100dvh] md:h-[calc(100vh-2rem)] bg-white shadow-2xl relative flex flex-col md:max-w-[420px] mx-auto md:my-4 md:rounded-[40px] md:border-[8px] border-gray-900 overflow-hidden">
-        <div className="flex-shrink-0 z-50 w-full relative bg-white">
+      <div className="w-full min-h-screen bg-[#f0f0f2] shadow-2xl relative flex flex-col mx-auto overflow-hidden">
+        <div className="flex-shrink-0 z-50 w-full relative bg-white border-b border-gray-100">
           <Navbar onAuthClick={() => setIsAuthModalOpen(true)} />
         </div>
         
-        <main className="flex-1 overflow-y-auto custom-scrollbar relative bg-[#f0f0f2]">
+        <main className="flex-1 overflow-y-auto relative w-full pb-20">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -127,6 +128,7 @@ const AppContent: React.FC = () => {
                 <Route path="/" element={<Feed onOrderClick={handleOrderClick} />} />
                 <Route path="/discover" element={<Discover />} />
                 <Route path="/activity" element={<Activity />} />
+                <Route path="/live" element={<Live />} />
                 <Route path="/chats" element={<RequireAuth><ChatList /></RequireAuth>} />
                 <Route path="/post" element={<RequireAuth><CreatePost /></RequireAuth>} />
                 <Route path="/post/:postId" element={<RequireAuth><PostView onOrderClick={handleOrderClick} /></RequireAuth>} />

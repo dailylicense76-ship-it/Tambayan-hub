@@ -526,29 +526,16 @@ export const firebaseService = {
     const fileName = `${Date.now()}_${fileToUpload.name}`;
     const storageRef = ref(storage, `${folder}/${fileName}`);
     
-    return new Promise((resolve, reject) => {
-      import('firebase/storage').then(({ uploadBytesResumable, getDownloadURL }) => {
-        const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
-        
-        uploadTask.on('state_changed', 
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            if (onProgress) onProgress(progress);
-          }, 
-          (error) => {
-            console.error('Upload Error:', error);
-            reject(error);
-          }, 
-          async () => {
-            try {
-              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-              resolve(downloadURL);
-            } catch (err) {
-              reject(err);
-            }
-          }
-        );
-      }).catch(reject);
-    });
+    try {
+      if (onProgress) onProgress(30);
+      const snapshot = await uploadBytes(storageRef, fileToUpload);
+      if (onProgress) onProgress(80);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      if (onProgress) onProgress(100);
+      return downloadURL;
+    } catch (error) {
+      console.error('Upload Error:', error);
+      throw error;
+    }
   }
 };

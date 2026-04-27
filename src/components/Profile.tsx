@@ -88,6 +88,23 @@ export const Profile: React.FC = () => {
     setOrders(updatedOrders || []);
   };
 
+  const handleEditProfile = async () => {
+    if (!user) return;
+    const newName = prompt("Enter your new Display Name:", user.displayName || "");
+    if (newName && newName.trim() !== user.displayName) {
+      try {
+        const { updateProfile } = await import('firebase/auth');
+        await updateProfile(user, { displayName: newName.trim() });
+        // Optionally update it in users collection if you want
+        await firebaseService.saveUserProfile({ displayName: newName.trim() });
+        alert("Profile updated! The app will reflect the new name on next refresh.");
+      } catch (error) {
+        console.error(error);
+        alert("Failed to update profile.");
+      }
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -161,7 +178,7 @@ export const Profile: React.FC = () => {
         )}
         
         <div className="flex gap-4 w-full mb-6">
-          <button className="flex-1 btn-secondary text-[10px]">Edit Profile</button>
+          <button onClick={handleEditProfile} className="flex-1 btn-secondary text-[10px]">Edit Profile</button>
           <button onClick={handleLogout} className="btn-secondary p-3 text-red-500 border-red-100 flex items-center justify-center">
             <LogOut size={20} />
           </button>
