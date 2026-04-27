@@ -340,6 +340,10 @@ export const firebaseService = {
     }
   },
 
+  getServerTimestamp() {
+    return serverTimestamp();
+  },
+
   // Interactions (TikTok/FB Style)
   async toggleLike(postId: string, userId: string) {
     const likeId = `${userId}_${postId}`;

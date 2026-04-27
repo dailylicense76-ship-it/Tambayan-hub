@@ -138,14 +138,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   };
 
   const saveProfile = async (userResult: any) => {
-    await firebaseService.saveUserProfile({
+    // Check if profile exists first to decide if we need to send createdAt
+    const existingProfile = await firebaseService.getUserProfile(userResult.uid);
+    
+    const profileData: any = {
       uid: userResult.uid,
       email: userResult.email,
-      displayName: userResult.displayName || `user_${userResult.uid.slice(0, 5)}`,
-      photoURL: userResult.photoURL,
+      displayName: userResult.displayName || userResult.email?.split('@')[0] || `user_${userResult.uid.slice(0, 5)}`,
+      photoURL: userResult.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userResult.uid}`,
       handle: userResult.email?.split('@')[0] || `user_${userResult.uid.slice(0, 5)}`,
-      createdAt: new Date().toISOString()
-    });
+    };
+
+    if (!existingProfile) {
+      profileData.createdAt = firebaseService.getServerTimestamp();
+    }
+
+    await firebaseService.saveUserProfile(profileData);
   };
 
   const handleAuthError = (error: any, provider: string) => {

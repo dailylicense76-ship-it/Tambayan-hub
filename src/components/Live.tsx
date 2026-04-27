@@ -37,51 +37,61 @@ export const Live: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
+    const startHost = async () => {
+      try {
+        console.log("Requesting camera access...");
+        const mStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, 
+          audio: true 
+        });
+        
+        localStreamRef.current = mStream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = mStream;
+          await videoRef.current.play();
+        }
+        
+        const streamRef = doc(db, 'liveStreams', user.uid);
+        await setDoc(streamRef, {
+          hostId: user.uid,
+          hostName: user.displayName || user.email?.split('@')[0] || 'Flexer',
+          hostPhoto: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
+          title: `${user.displayName || 'Someone'}'s Top Flex`,
+          status: 'live',
+          viewerCount: 0,
+          createdAt: serverTimestamp(),
+          updatedAt: Date.now()
+        });
+        
+        setCurrentStreamId(user.uid);
+        setHostDetails({ 
+          name: user.displayName || user.email?.split('@')[0] || 'Flexer', 
+          photo: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`
+        });
+        
+        setIsInitializing(false);
+
+        // Heartbeat
+        const heartbeatMsg = setInterval(() => {
+          updateDoc(streamRef, { updatedAt: Date.now() }).catch(err => {
+             console.error("Heartbeat error:", err);
+          });
+        }, 8000);
+        
+        // @ts-ignore
+        window.liveStreamHeartbeat = heartbeatMsg;
+      } catch (error) {
+        console.error("Camera access denied or unavailable", error);
+        setErrorStatus("Camera access failed. Please ensure you have given permission and your camera is not being used by another app.");
+        setIsInitializing(false);
+      }
+    };
+
     if (mode === 'host' && !currentStreamId && !hasInitializedStream.current) {
       hasInitializedStream.current = true;
-      // Setup WebCam and Create Stream Doc
-      const startHost = async () => {
-        try {
-          const mStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-          localStreamRef.current = mStream;
-          if (videoRef.current) {
-            videoRef.current.srcObject = mStream;
-            videoRef.current.play().catch(console.error);
-          }
-          
-          const streamRef = doc(db, 'liveStreams', user.uid);
-          await setDoc(streamRef, {
-            hostId: user.uid,
-            hostName: user.displayName || user.email?.split('@')[0],
-            hostPhoto: user.photoURL,
-            title: `${user.displayName || 'Someone'}'s Top Flex`,
-            status: 'live',
-            viewerCount: 0,
-            createdAt: serverTimestamp(),
-            updatedAt: Date.now()
-          });
-          setCurrentStreamId(user.uid);
-          setHostDetails({ name: user.displayName || user.email?.split('@')[0], photo: user.photoURL });
-          
-          // Small delay to ensure Ref is ready before setting isInitializing to false
-          setTimeout(() => setIsInitializing(false), 200);
-
-          // Heartbeat
-          const heartbeatMsg = setInterval(() => {
-            updateDoc(streamRef, { updatedAt: Date.now() }).catch(console.error);
-          }, 10000);
-          
-          // @ts-ignore
-          window.liveStreamHeartbeat = heartbeatMsg;
-        } catch (error) {
-          console.error("Camera access denied or unavailable", error);
-          setErrorStatus("Camera access denied or device not found. Please check permissions and try again.");
-          setIsInitializing(false);
-        }
-      };
       startHost();
-    } else if (currentStreamId) {
-      // Simulate viewers for mock/viewer mode
+    } else if (mode === 'viewer' && streamId) {
+      setCurrentStreamId(streamId);
       setIsInitializing(false);
     }
     
@@ -89,13 +99,14 @@ export const Live: React.FC = () => {
        if (localStreamRef.current) {
          localStreamRef.current.getTracks().forEach(track => track.stop());
        }
-       if (mode === 'host' && currentStreamId) {
-         updateDoc(doc(db, 'liveStreams', currentStreamId), { status: 'ended' }).catch(console.error);
+       // Only host can end its own stream
+       if (mode === 'host' && user?.uid) {
+         updateDoc(doc(db, 'liveStreams', user.uid), { status: 'ended' }).catch(() => {});
          // @ts-ignore
          if (window.liveStreamHeartbeat) clearInterval(window.liveStreamHeartbeat);
        }
     };
-  }, [mode, user, currentStreamId, navigate]);
+  }, [mode, user, streamId]);
 
   // Subscribe to Stream Doc & Messages
   useEffect(() => {

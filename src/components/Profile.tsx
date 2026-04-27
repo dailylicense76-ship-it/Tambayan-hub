@@ -125,6 +125,7 @@ export const Profile: React.FC = () => {
       await firebaseService.saveUserProfile({ 
         uid: user.uid, 
         displayName: editName.trim() || user.displayName,
+        handle: user.email?.split('@')[0] || `user_${user.uid.slice(0, 5)}`,
         ...profileData
       });
       setIsEditingProfile(false);

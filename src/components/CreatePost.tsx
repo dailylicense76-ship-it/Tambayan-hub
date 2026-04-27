@@ -44,20 +44,25 @@ export const CreatePost: React.FC = () => {
       // 2. Create Post
       const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
       
-      await firebaseService.createPost({
+      const postPayload: any = {
         userId: auth.currentUser.uid,
-        userName: auth.currentUser.displayName,
+        userName: auth.currentUser.displayName || 'Legit Seller',
         userHandle: auth.currentUser.email?.split('@')[0],
-        userAvatar: auth.currentUser.photoURL,
+        userAvatar: auth.currentUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${auth.currentUser.uid}`,
         mediaType,
         image: downloadUrl as string,
         text: text,
-        commerce: isSelling ? {
-          price: parseFloat(price),
+      };
+
+      if (isSelling) {
+        postPayload.commerce = {
+          price: parseFloat(price) || 0,
           itemName: itemName || 'Untitled Item',
           isSelling: true
-        } : null
-      });
+        };
+      }
+      
+      await firebaseService.createPost(postPayload);
       
       navigate('/');
     } catch (error) {

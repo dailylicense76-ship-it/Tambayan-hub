@@ -65,7 +65,7 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
        const now = Date.now();
        const validStreams = streams.filter(s => {
          // Streams without updatedAt are from the old bugged schema, hide them
-         const isRecent = s.updatedAt ? (now - s.updatedAt < 20000) : false;
+         const isRecent = s.updatedAt ? (now - s.updatedAt < 60000) : false;
          return s.id === s.hostId && isRecent;
        });
        

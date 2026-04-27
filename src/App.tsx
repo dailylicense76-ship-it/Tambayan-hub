@@ -19,7 +19,9 @@ import { PostView } from './components/PostView';
 import { Live } from './components/Live';
 import { doc, getDocFromServer } from 'firebase/firestore';
 import { db } from './lib/firebase';
-import { AlertCircle, X, Package } from 'lucide-react';
+import { cn } from './lib/utils';
+import { AlertCircle, X, Package, Home, Search, Radio, ShoppingBag } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const RequireAuth: React.FC<{ children: React.ReactNode; user: User | null; loading: boolean; onRequireAuth: () => void }> = ({ children, user, loading, onRequireAuth }) => {
   const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false);
@@ -63,6 +65,7 @@ const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Validate connection to Firestore as per instructions
@@ -117,35 +120,83 @@ const AppContent: React.FC = () => {
           <Navbar onAuthClick={() => setIsAuthModalOpen(true)} />
         </div>
         
-        <main className="flex-1 overflow-y-auto relative w-full pb-28 custom-scrollbar">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.02 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="min-h-full"
-            >
-              <Routes location={location}>
-                <Route path="/" element={<Feed onOrderClick={handleOrderClick} />} />
-                <Route path="/discover" element={<Discover />} />
-                <Route path="/activity" element={<Activity />} />
-                <Route path="/live" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><Live /></RequireAuth>} />
-                <Route path="/chats" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><ChatList /></RequireAuth>} />
-                <Route path="/post" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><CreatePost /></RequireAuth>} />
-                <Route path="/post/:postId" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><PostView onOrderClick={handleOrderClick} /></RequireAuth>} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/admin" element={<AdminDashboard />} />
-              </Routes>
-            </motion.div>
-          </AnimatePresence>
+        <div className="flex-1 flex overflow-hidden relative">
+          {/* Desktop Left Sidebar */}
+          <aside className="hidden lg:flex w-72 border-r border-gray-100 flex-col py-6 px-4 bg-white/50 shrink-0">
+            <nav className="space-y-1 mb-8">
+               <SidebarLink icon={<Home size={20}/>} label="Home Feed" active={location.pathname === '/'} onClick={() => navigate('/')} />
+               <SidebarLink icon={<Search size={20}/>} label="Discover" active={location.pathname === '/discover'} onClick={() => navigate('/discover')} />
+               <SidebarLink icon={<Radio size={20}/>} label="Live Flex" active={location.pathname === '/live'} onClick={() => navigate('/live')} badge="Live" />
+               <SidebarLink icon={<ShoppingBag size={20}/>} label="My Orders" active={location.pathname === '/admin'} onClick={() => user ? navigate('/admin') : setIsAuthModalOpen(true)} />
+            </nav>
 
-          <footer className="mt-8 pt-6 pb-6 text-center text-gray-300 border-t border-gray-100 space-y-1">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">DEGZ FLEX HUB &copy; 2026</p>
-            <p className="text-[7px] font-bold uppercase tracking-widest opacity-60">Tambayan Hub Marketplace</p>
-          </footer>
-        </main>
+            <div className="mt-auto">
+              <div className="p-4 bg-brand/[0.03] border border-brand/5 rounded-[32px] overflow-hidden relative group">
+                <div className="absolute inset-0 bg-brand/5 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+                <div className="relative z-10">
+                   <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-2">Tambayan Status</p>
+                   <p className="text-[11px] font-bold text-gray-900 leading-tight">Laging Legit, Laging Safe. Tambay na!</p>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <main className="flex-1 overflow-y-auto relative w-full pb-28 custom-scrollbar">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.02 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                className="min-h-full"
+              >
+                <Routes location={location}>
+                  <Route path="/" element={<Feed onOrderClick={handleOrderClick} />} />
+                  <Route path="/discover" element={<Discover />} />
+                  <Route path="/activity" element={<Activity />} />
+                  <Route path="/live" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><Live /></RequireAuth>} />
+                  <Route path="/chats" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><ChatList /></RequireAuth>} />
+                  <Route path="/post" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><CreatePost /></RequireAuth>} />
+                  <Route path="/post/:postId" element={<RequireAuth user={user} loading={loading} onRequireAuth={() => setIsAuthModalOpen(true)}><PostView onOrderClick={handleOrderClick} /></RequireAuth>} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/admin" element={<AdminDashboard />} />
+                </Routes>
+              </motion.div>
+            </AnimatePresence>
+
+            <footer className="mt-8 pt-6 pb-6 text-center text-gray-300 border-t border-gray-100 space-y-1">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-80">DEGZ FLEX HUB &copy; 2026</p>
+              <p className="text-[7px] font-bold uppercase tracking-widest opacity-60">Tambayan Hub Marketplace</p>
+            </footer>
+          </main>
+
+          {/* Desktop Right Sidebar - Activity / Trending */}
+          <aside className="hidden xl:flex w-80 border-l border-gray-100 flex-col p-6 bg-white shrink-0">
+             <div className="mb-8">
+               <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Trending Flex</h3>
+               <div className="space-y-4">
+                 {['#SneakerHead', '#LegitFlex', '#CODavailable', '#TambayanVibe'].map(tag => (
+                   <div key={tag} className="group cursor-pointer">
+                     <p className="text-sm font-black text-gray-900 group-hover:text-brand transition-colors">{tag}</p>
+                     <p className="text-[10px] font-bold text-gray-400 uppercase">1.2k FLEXES</p>
+                   </div>
+                 ))}
+               </div>
+             </div>
+
+             <div className="p-5 bg-black rounded-[32px] text-white">
+                <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-2">New Feature</p>
+                <h4 className="text-lg font-black tracking-tight mb-4">Live Flex Real-time Interaction</h4>
+                <button 
+                  onClick={() => navigate('/live')} 
+                  className="w-full bg-white text-black py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-brand transition-colors"
+                >
+                  Explore Now
+                </button>
+             </div>
+          </aside>
+        </div>
 
         <div className="absolute bottom-0 w-full z-50">
           <BottomNav />
@@ -201,6 +252,31 @@ const AppContent: React.FC = () => {
     </div>
   );
 };
+
+const SidebarLink: React.FC<{ icon: React.ReactNode, label: string, active?: boolean, onClick: () => void, badge?: string }> = ({ icon, label, active, onClick, badge }) => (
+  <button 
+    onClick={onClick}
+    className={cn(
+      "w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all group",
+      active ? "bg-brand text-white shadow-lg shadow-brand/20" : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+    )}
+  >
+    <div className="flex items-center gap-3">
+      <span className={cn("transition-transform group-hover:scale-110", active ? "text-white" : "text-gray-400 group-hover:text-brand")}>
+        {icon}
+      </span>
+      <span className="text-[11px] font-black uppercase tracking-[0.2em]">{label}</span>
+    </div>
+    {badge && (
+      <span className={cn(
+        "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest",
+        active ? "bg-white text-brand" : "bg-red-500 text-white animate-pulse"
+      )}>
+        {badge}
+      </span>
+    )}
+  </button>
+);
 
 export default function App() {
   return (
