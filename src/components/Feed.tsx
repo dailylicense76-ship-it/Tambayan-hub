@@ -6,11 +6,17 @@ import { motion } from 'motion/react';
 import { PlusCircle, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { useNavigate } from 'react-router-dom';
+
 export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) => {
   const [posts, setPosts] = useState<any[]>([]);
+  const [liveStreams, setLiveStreams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'for-you' | 'following'>('for-you');
   const [followedIds, setFollowedIds] = useState<string[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let unsubscribe: () => void = () => {};
@@ -40,6 +46,17 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
     setupFeed();
     return () => unsubscribe();
   }, [activeTab]);
+
+  useEffect(() => {
+    const q = query(collection(db, 'liveStreams'), where('status', '==', 'live'));
+    const unsub = onSnapshot(q, (snap) => {
+       const streams = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+       setLiveStreams(streams);
+    }, (error) => {
+      console.error("Error in live streams onSnapshot:", error);
+    });
+    return () => unsub();
+  }, []);
 
   const seedData = async () => {
     const SAMPLE_POSTS = [
@@ -110,7 +127,7 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
 
       {/* Stories / Highlights Bar */}
       <div className="py-4 border-b border-gray-100 flex gap-4 overflow-x-auto custom-scrollbar bg-white px-2">
-        <div className="flex flex-col items-center gap-1.5 shrink-0 ml-2">
+        <div className="flex flex-col items-center gap-1.5 shrink-0 ml-2" onClick={() => navigate('/post')}>
           <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-300 p-0.5 relative group cursor-pointer hover:border-brand transition-colors">
             <div className="w-full h-full rounded-full bg-gray-50 flex items-center justify-center overflow-hidden">
                <img src={postImg} className="w-full h-full object-cover" alt="Your Story" />
@@ -119,9 +136,22 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
               <PlusCircle size={12} strokeWidth={3} />
             </div>
           </div>
-          <span className="text-[10px] font-bold text-gray-500">Add Story</span>
+          <span className="text-[10px] font-bold text-gray-500">Go Live/Flex</span>
         </div>
         
+        {/* Render active Live Streams */}
+        {liveStreams.map((stream) => (
+          <div key={stream.id} className="flex flex-col items-center gap-1.5 shrink-0 cursor-pointer" onClick={() => navigate(`/live?streamId=${stream.id}&mode=viewer`)}>
+            <div className="w-16 h-16 rounded-full border-[3px] border-red-500 p-0.5 relative group transition-transform hover:scale-105 shadow-md shadow-red-500/20">
+              <div className="w-full h-full rounded-full bg-gray-50 flex items-center justify-center overflow-hidden border border-white">
+                 <img src={stream.hostPhoto || 'https://api.dicebear.com/7.x/avataaars/svg?seed=live'} className="w-full h-full object-cover" alt={stream.hostName} />
+              </div>
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded animate-pulse">Live</div>
+            </div>
+            <span className="text-[10px] font-bold text-brand truncate w-16 text-center mt-1">{stream.hostName}</span>
+          </div>
+        ))}
+
         {/* Render active stories from users in the feed */}
         {Array.from(new Set(posts.map(p => p.userId))).slice(0, 8).map((uid) => {
           const userPost = posts.find(p => p.userId === uid);

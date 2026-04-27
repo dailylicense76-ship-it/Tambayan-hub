@@ -115,7 +115,7 @@ const AppContent: React.FC = () => {
           <Navbar onAuthClick={() => setIsAuthModalOpen(true)} />
         </div>
         
-        <main className="flex-1 overflow-y-auto relative w-full pb-20">
+        <main className="flex-1 overflow-y-auto relative w-full pb-28">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -128,7 +128,7 @@ const AppContent: React.FC = () => {
                 <Route path="/" element={<Feed onOrderClick={handleOrderClick} />} />
                 <Route path="/discover" element={<Discover />} />
                 <Route path="/activity" element={<Activity />} />
-                <Route path="/live" element={<Live />} />
+                <Route path="/live" element={<RequireAuth><Live /></RequireAuth>} />
                 <Route path="/chats" element={<RequireAuth><ChatList /></RequireAuth>} />
                 <Route path="/post" element={<RequireAuth><CreatePost /></RequireAuth>} />
                 <Route path="/post/:postId" element={<RequireAuth><PostView onOrderClick={handleOrderClick} /></RequireAuth>} />
@@ -144,7 +144,7 @@ const AppContent: React.FC = () => {
           </footer>
         </main>
 
-        <div className="flex-shrink-0 w-full z-50">
+        <div className="absolute bottom-0 w-full z-50">
           <BottomNav />
         </div>
       </div>

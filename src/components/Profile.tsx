@@ -17,9 +17,11 @@ export const Profile: React.FC = () => {
   const [coins, setCoins] = useState(0);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState("");
+  const [profileData, setProfileData] = useState<any>({ bio: '', work: '', education: '', location: '', relationshipStatus: '' });
   
   const [isToppingUp, setIsToppingUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState("");
+  const [isProcessingGcash, setIsProcessingGcash] = useState(false);
 
   const user = auth.currentUser;
   const navigate = useNavigate();
@@ -36,6 +38,20 @@ export const Profile: React.FC = () => {
       
       const adminStatus = await firebaseService.checkIsAdmin(user.uid);
       setIsAdmin(!!adminStatus);
+
+      // Fetch user profile data
+      const userRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const data = userSnap.data();
+        setProfileData({
+          bio: data.bio || '',
+          work: data.work || '',
+          education: data.education || '',
+          location: data.location || '',
+          relationshipStatus: data.relationshipStatus || ''
+        });
+      }
 
       // Fetch follow stats
       const followingQuery = query(collection(db, 'follows'), where('followerId', '==', user.uid));
@@ -83,9 +99,13 @@ export const Profile: React.FC = () => {
     if (!user) return;
     const amount = parseInt(topUpAmount, 10);
     if (amount > 0) {
-      await firebaseService.topUpWallet(user.uid, amount);
-      setIsToppingUp(false);
-      setTopUpAmount("");
+      setIsProcessingGcash(true);
+      setTimeout(async () => {
+        await firebaseService.topUpWallet(user.uid, amount);
+        setIsProcessingGcash(false);
+        setIsToppingUp(false);
+        setTopUpAmount("");
+      }, 2000);
     }
   };
 
@@ -97,16 +117,19 @@ export const Profile: React.FC = () => {
 
   const handleEditProfileConfirm = async () => {
     if (!user) return;
-    if (editName && editName.trim() !== user.displayName) {
-      try {
-        const { updateProfile } = await import('firebase/auth');
+    try {
+      const { updateProfile } = await import('firebase/auth');
+      if (editName && editName.trim() !== user.displayName) {
         await updateProfile(user, { displayName: editName.trim() });
-        await firebaseService.saveUserProfile({ uid: user.uid, displayName: editName.trim() });
-        setIsEditingProfile(false);
-      } catch (error) {
-        console.error(error);
       }
-    } else {
+      await firebaseService.saveUserProfile({ 
+        uid: user.uid, 
+        displayName: editName.trim() || user.displayName,
+        ...profileData
+      });
+      setIsEditingProfile(false);
+    } catch (error) {
+      console.error(error);
       setIsEditingProfile(false);
     }
   };
@@ -136,10 +159,21 @@ export const Profile: React.FC = () => {
         </div>
         
         <h2 className="text-xl font-black text-gray-900 uppercase tracking-tighter">{user.displayName}</h2>
-        <p className="text-gray-400 text-sm mb-6 flex items-center gap-1 font-bold">
+        <p className="text-gray-400 text-sm mb-4 flex items-center gap-1 font-bold">
           @{user.email?.split('@')[0]}
           <CheckCircle2 size={12} className="text-brand" />
         </p>
+
+        {profileData.bio && (
+          <p className="text-sm text-gray-700 text-center mb-4 max-w-xs">{profileData.bio}</p>
+        )}
+
+        <div className="flex flex-wrap gap-2 justify-center mb-6 max-w-sm">
+          {profileData.work && <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold">💼 {profileData.work}</span>}
+          {profileData.education && <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold">🎓 {profileData.education}</span>}
+          {profileData.location && <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold">📍 {profileData.location}</span>}
+          {profileData.relationshipStatus && <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold">❤️ {profileData.relationshipStatus}</span>}
+        </div>
 
         {/* Wallet Section */}
         <div className="w-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl p-4 mb-8 text-white shadow-lg relative overflow-hidden">
@@ -316,37 +350,121 @@ export const Profile: React.FC = () => {
 
       {isToppingUp && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4">
-            <h3 className="text-[12px] font-black uppercase tracking-widest text-gray-900 border-b pb-2">Top Up Tambayan Coins</h3>
-            <input 
-              type="number" 
-              value={topUpAmount}
-              onChange={(e) => setTopUpAmount(e.target.value)}
-              placeholder="e.g. 100"
-              className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-900 outline-none focus:border-brand transition-colors"
-            />
-            <div className="flex gap-2 pt-2">
-              <button onClick={() => setIsToppingUp(false)} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold text-[10px] uppercase tracking-widest">Cancel</button>
-              <button onClick={handleTopUpConfirm} className="flex-1 py-3 bg-brand text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-brand/20">Confirm</button>
-            </div>
+          <div className="bg-white rounded-[32px] p-6 w-full max-w-sm space-y-4 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-1.5 bg-blue-500"></div>
+            
+            {isProcessingGcash ? (
+               <div className="py-10 flex flex-col items-center justify-center space-y-4">
+                 <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin"></div>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 animate-pulse">Processing with GCash...</p>
+               </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between border-b pb-4">
+                  <h3 className="text-[14px] font-black tracking-tighter text-gray-900">Top Up Tambayan Coins</h3>
+                  <div className="bg-blue-600 text-white px-2 py-1 rounded text-[8px] font-black tracking-widest uppercase">GCash</div>
+                </div>
+                
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1 block">Amount to Top Up (₱)</label>
+                  <input 
+                    type="number" 
+                    value={topUpAmount}
+                    onChange={(e) => setTopUpAmount(e.target.value)}
+                    placeholder="e.g. 100"
+                    className="w-full bg-blue-50/50 border border-blue-100 rounded-xl p-4 text-2xl font-black text-blue-900 outline-none focus:border-blue-500 transition-colors placeholder:text-blue-200"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-2 italic">1 Peso = 1 Tambayan Coin</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <button onClick={() => setIsToppingUp(false)} className="py-4 bg-gray-50 text-gray-600 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-gray-100">Cancel</button>
+                  <button onClick={handleTopUpConfirm} className="py-4 bg-blue-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-600/30 hover:scale-[1.02] active:scale-95 transition-all">Pay with GCash</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
 
       {isEditingProfile && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4">
-            <h3 className="text-[12px] font-black uppercase tracking-widest text-gray-900 border-b pb-2">Edit Display Name</h3>
-            <input 
-              type="text" 
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              placeholder="Your new name..."
-              className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-900 outline-none focus:border-brand transition-colors"
-            />
-            <div className="flex gap-2 pt-2">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+            <h3 className="text-[12px] font-black uppercase tracking-widest text-gray-900 border-b pb-2 sticky top-0 bg-white z-10">Edit Profile</h3>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Display Name</label>
+                <input 
+                  type="text" 
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-900 outline-none focus:border-brand transition-colors mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Bio</label>
+                <textarea 
+                  value={profileData.bio}
+                  onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-900 outline-none focus:border-brand transition-colors mt-1 resize-none h-20"
+                  placeholder="Describe yourself..."
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Work</label>
+                <input 
+                  type="text" 
+                  value={profileData.work}
+                  onChange={(e) => setProfileData({...profileData, work: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-900 outline-none focus:border-brand transition-colors mt-1"
+                  placeholder="Where do you work?"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Education</label>
+                <input 
+                  type="text" 
+                  value={profileData.education}
+                  onChange={(e) => setProfileData({...profileData, education: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-900 outline-none focus:border-brand transition-colors mt-1"
+                  placeholder="Where did you study?"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Location</label>
+                <input 
+                  type="text" 
+                  value={profileData.location}
+                  onChange={(e) => setProfileData({...profileData, location: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-900 outline-none focus:border-brand transition-colors mt-1"
+                  placeholder="Where do you live?"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Relationship Status</label>
+                <select 
+                  value={profileData.relationshipStatus}
+                  onChange={(e) => setProfileData({...profileData, relationshipStatus: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-900 outline-none focus:border-brand transition-colors mt-1 appearance-none"
+                >
+                  <option value="">Select...</option>
+                  <option value="Single">Single</option>
+                  <option value="In a relationship">In a relationship</option>
+                  <option value="Married">Married</option>
+                  <option value="It's complicated">It's complicated</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-4 sticky bottom-0 bg-white">
               <button onClick={() => setIsEditingProfile(false)} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold text-[10px] uppercase tracking-widest">Cancel</button>
-              <button onClick={handleEditProfileConfirm} className="flex-1 py-3 bg-brand text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-brand/20">Save</button>
+              <button onClick={handleEditProfileConfirm} className="flex-1 py-3 bg-brand text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-brand/20">Save Details</button>
             </div>
           </div>
         </div>

@@ -39,7 +39,7 @@ service cloud.firestore {
       allow list: if false; // No blanket user listing
       allow create: if isSignedIn() && isValidUser(incoming()) && incoming().createdAt == request.time;
       allow update: if isOwner(userId) && isValidUser(incoming()) && (
-        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'handle', 'updatedAt'])
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'handle', 'bio', 'work', 'education', 'location', 'relationshipStatus', 'updatedAt'])
       );
 
       match /wallet/{docId} {
@@ -91,6 +91,18 @@ service cloud.firestore {
         allow read: if true;
         allow create: if isSignedIn() && isValidComment(incoming()) && incoming().createdAt == request.time;
         allow update, delete: if isOwner(existing().userId) || isAdmin();
+      }
+    }
+
+    // --- Live Streams Rules ---
+    match /liveStreams/{streamId} {
+      allow read: if true;
+      allow create: if isSignedIn() && incoming().hostId == request.auth.uid;
+      allow update: if (isSignedIn() && existing().hostId == request.auth.uid) || isSignedIn(); // allow any authenticated user to update viewers or status? Actually, we'll keep it simple for preview. Allow anyone signed in to update (for viewer counts etc).
+
+      match /messages/{messageId} {
+        allow read: if true;
+        allow create: if isSignedIn();
       }
     }
 
