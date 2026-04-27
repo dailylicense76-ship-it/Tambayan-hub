@@ -112,7 +112,7 @@ const AppContent: React.FC = () => {
       <CanvasBackground />
 
       {/* Responsive Wrapper */}
-      <div className="w-full sm:max-w-md md:max-w-lg xl:max-w-2xl h-[100dvh] bg-white/95 backdrop-blur-2xl sm:shadow-2xl relative flex flex-col mx-auto overflow-hidden sm:border-x sm:border-gray-100">
+      <div className="w-full h-[100dvh] bg-white/95 backdrop-blur-2xl relative flex flex-col mx-auto overflow-hidden">
         <div className="flex-shrink-0 z-50 w-full relative bg-white border-b border-gray-100">
           <Navbar onAuthClick={() => setIsAuthModalOpen(true)} />
         </div>

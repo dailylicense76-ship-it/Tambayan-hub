@@ -57,7 +57,7 @@ export const Feed: React.FC<{ onOrderClick: () => void }> = ({ onOrderClick }) =
   useEffect(() => {
     const q = query(collection(db, 'liveStreams'), where('status', '==', 'live'));
     const unsub = onSnapshot(q, (snap) => {
-       const streams = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+       const streams = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
        
        // Filter out old "ghost" duplicates created by addDoc (where id != hostId)
        // and deduplicate by hostId just to be completely safe.

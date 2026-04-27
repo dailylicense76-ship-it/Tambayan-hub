@@ -169,22 +169,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
+        <motion.div 
+          key="auth-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4"
+        >
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          />
-          <motion.div 
+            key="auth-modal"
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             className={cn(
-              "fixed inset-0 m-auto w-full max-w-sm h-fit z-[60] glass-card p-8 flex flex-col items-center bg-white border-brand/10 shadow-2xl transition-all",
+              "m-auto w-full max-w-sm h-fit glass-card p-8 flex flex-col items-center bg-white border-brand/10 shadow-2xl transition-all relative",
               loading && "opacity-80 pointer-events-none"
             )}
+            onClick={(e) => e.stopPropagation()}
           >
             <button 
               onClick={(e) => {
@@ -403,7 +405,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               By continuing, you agree to our Terms.
             </p>
           </motion.div>
-        </>
+        </motion.div>
       )}
     </AnimatePresence>
   );

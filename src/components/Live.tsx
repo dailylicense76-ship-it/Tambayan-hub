@@ -171,19 +171,18 @@ export const Live: React.FC = () => {
     );
   }
 
+  useEffect(() => {
+    if (videoRef.current && localStreamRef.current && videoRef.current.srcObject !== localStreamRef.current) {
+      videoRef.current.srcObject = localStreamRef.current;
+    }
+  });
+
   return (
     <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center">
       {/* Video Background */}
       {mode === 'host' ? (
         <video 
-          ref={(el) => {
-            if (el && localStreamRef.current && el.srcObject !== localStreamRef.current) {
-              el.srcObject = localStreamRef.current;
-              el.play().catch(console.error);
-            }
-            // @ts-ignore
-            videoRef.current = el;
-          }}
+          ref={videoRef}
           autoPlay 
           playsInline 
           muted
