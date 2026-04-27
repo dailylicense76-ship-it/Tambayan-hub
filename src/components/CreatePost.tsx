@@ -34,9 +34,12 @@ export const CreatePost: React.FC = () => {
     if (!text || !file) return alert('Please add a description and select a photo or video');
 
     setLoading(true);
+    setUploadProgress(0);
     try {
       // 1. Upload File
-      const downloadUrl = await firebaseService.uploadFile(file);
+      const downloadUrl = await firebaseService.uploadFile(file, 'posts', (progress) => {
+        setUploadProgress(Math.round(progress));
+      });
       
       // 2. Create Post
       const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
@@ -47,7 +50,7 @@ export const CreatePost: React.FC = () => {
         userHandle: auth.currentUser.email?.split('@')[0],
         userAvatar: auth.currentUser.photoURL,
         mediaType,
-        image: downloadUrl,
+        image: downloadUrl as string,
         text: text,
         commerce: isSelling ? {
           price: parseFloat(price),
@@ -59,9 +62,10 @@ export const CreatePost: React.FC = () => {
       navigate('/');
     } catch (error) {
       console.error(error);
-      alert('Failed to post. Check your connection.');
+      alert('Failed to post. Check your connection or file size.');
     } finally {
       setLoading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -213,15 +217,21 @@ export const CreatePost: React.FC = () => {
           type="submit" 
           className="w-full btn-primary py-5 flex items-center justify-center gap-3 disabled:opacity-50 shadow-brand/20 relative overflow-hidden"
         >
+          {loading && (
+            <div 
+              className="absolute inset-0 bg-black/10 transition-all duration-300" 
+              style={{ width: `${uploadProgress}%` }} 
+            />
+          )}
           {loading ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 relative z-10">
               <Loader2 className="animate-spin" size={18} />
-              <span>Posting Real Flex...</span>
+              <span>{uploadProgress < 100 ? `Uploading ${uploadProgress}%...` : 'Finishing...'}</span>
             </div>
           ) : (
             <>
-              <Check size={20} strokeWidth={3} />
-              Post to Feed
+              <Check size={20} strokeWidth={3} className="relative z-10" />
+              <span className="relative z-10">Post to Feed</span>
             </>
           )}
         </button>

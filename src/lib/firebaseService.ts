@@ -402,7 +402,7 @@ export const firebaseService = {
     });
   },
 
-  async uploadFile(file: File, folder: string = 'posts') {
+  async uploadFile(file: File, folder: string = 'posts', onProgress?: (progress: number) => void) {
     let fileToUpload = file;
     
     // Compress image to speed up upload
@@ -411,7 +411,7 @@ export const firebaseService = {
         const options = {
           maxSizeMB: 0.5,
           maxWidthOrHeight: 1080,
-          useWebWorker: true
+          useWebWorker: false
         };
         fileToUpload = await imageCompression(file, options);
       } catch (error) {
@@ -422,12 +422,30 @@ export const firebaseService = {
 
     const fileName = `${Date.now()}_${fileToUpload.name}`;
     const storageRef = ref(storage, `${folder}/${fileName}`);
-    try {
-      const snapshot = await uploadBytes(storageRef, fileToUpload);
-      return await getDownloadURL(snapshot.ref);
-    } catch (error) {
-      console.error('Upload Error:', error);
-      throw error;
-    }
+    
+    return new Promise((resolve, reject) => {
+      import('firebase/storage').then(({ uploadBytesResumable, getDownloadURL }) => {
+        const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
+        
+        uploadTask.on('state_changed', 
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            if (onProgress) onProgress(progress);
+          }, 
+          (error) => {
+            console.error('Upload Error:', error);
+            reject(error);
+          }, 
+          async () => {
+            try {
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+              resolve(downloadURL);
+            } catch (err) {
+              reject(err);
+            }
+          }
+        );
+      }).catch(reject);
+    });
   }
 };
