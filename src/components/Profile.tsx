@@ -15,6 +15,12 @@ export const Profile: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [stats, setStats] = useState({ following: 0, followers: 0 });
   const [coins, setCoins] = useState(0);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editName, setEditName] = useState("");
+  
+  const [isToppingUp, setIsToppingUp] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("");
+
   const user = auth.currentUser;
   const navigate = useNavigate();
 
@@ -73,12 +79,13 @@ export const Profile: React.FC = () => {
     navigate('/');
   };
 
-  const handleTopUp = async () => {
+  const handleTopUpConfirm = async () => {
     if (!user) return;
-    const amount = parseInt(prompt("Enter amount to top up (e.g. 100):") || "0", 10);
+    const amount = parseInt(topUpAmount, 10);
     if (amount > 0) {
       await firebaseService.topUpWallet(user.uid, amount);
-      alert(`Successfully added ${amount} Tambayan Coins!`);
+      setIsToppingUp(false);
+      setTopUpAmount("");
     }
   };
 
@@ -88,20 +95,19 @@ export const Profile: React.FC = () => {
     setOrders(updatedOrders || []);
   };
 
-  const handleEditProfile = async () => {
+  const handleEditProfileConfirm = async () => {
     if (!user) return;
-    const newName = prompt("Enter your new Display Name:", user.displayName || "");
-    if (newName && newName.trim() !== user.displayName) {
+    if (editName && editName.trim() !== user.displayName) {
       try {
         const { updateProfile } = await import('firebase/auth');
-        await updateProfile(user, { displayName: newName.trim() });
-        // Optionally update it in users collection if you want
-        await firebaseService.saveUserProfile({ displayName: newName.trim() });
-        alert("Profile updated! The app will reflect the new name on next refresh.");
+        await updateProfile(user, { displayName: editName.trim() });
+        await firebaseService.saveUserProfile({ uid: user.uid, displayName: editName.trim() });
+        setIsEditingProfile(false);
       } catch (error) {
         console.error(error);
-        alert("Failed to update profile.");
       }
+    } else {
+      setIsEditingProfile(false);
     }
   };
 
@@ -147,7 +153,7 @@ export const Profile: React.FC = () => {
               {coins.toLocaleString()}
             </h3>
             <button 
-              onClick={handleTopUp}
+              onClick={() => setIsToppingUp(true)}
               className="bg-white text-orange-600 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1 shadow-sm hover:scale-105 transition-transform"
             >
               <Plus size={14} /> Top Up
@@ -178,7 +184,7 @@ export const Profile: React.FC = () => {
         )}
         
         <div className="flex gap-4 w-full mb-6">
-          <button onClick={handleEditProfile} className="flex-1 btn-secondary text-[10px]">Edit Profile</button>
+          <button onClick={() => { setEditName(user.displayName || ""); setIsEditingProfile(true); }} className="flex-1 btn-secondary text-[10px]">Edit Profile</button>
           <button onClick={handleLogout} className="btn-secondary p-3 text-red-500 border-red-100 flex items-center justify-center">
             <LogOut size={20} />
           </button>
@@ -307,6 +313,44 @@ export const Profile: React.FC = () => {
           </div>
         )}
       </div>
+
+      {isToppingUp && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4">
+            <h3 className="text-[12px] font-black uppercase tracking-widest text-gray-900 border-b pb-2">Top Up Tambayan Coins</h3>
+            <input 
+              type="number" 
+              value={topUpAmount}
+              onChange={(e) => setTopUpAmount(e.target.value)}
+              placeholder="e.g. 100"
+              className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-900 outline-none focus:border-brand transition-colors"
+            />
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => setIsToppingUp(false)} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold text-[10px] uppercase tracking-widest">Cancel</button>
+              <button onClick={handleTopUpConfirm} className="flex-1 py-3 bg-brand text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-brand/20">Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditingProfile && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4">
+            <h3 className="text-[12px] font-black uppercase tracking-widest text-gray-900 border-b pb-2">Edit Display Name</h3>
+            <input 
+              type="text" 
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="Your new name..."
+              className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-900 outline-none focus:border-brand transition-colors"
+            />
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => setIsEditingProfile(false)} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold text-[10px] uppercase tracking-widest">Cancel</button>
+              <button onClick={handleEditProfileConfirm} className="flex-1 py-3 bg-brand text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-brand/20">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

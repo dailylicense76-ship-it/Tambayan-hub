@@ -19,10 +19,11 @@ import { PostView } from './components/PostView';
 import { Live } from './components/Live';
 import { doc, getDocFromServer } from 'firebase/firestore';
 import { db } from './lib/firebase';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, X, Package } from 'lucide-react';
 
 const AppContent: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
@@ -51,8 +52,7 @@ const AppContent: React.FC = () => {
     if (!user) {
       setIsAuthModalOpen(true);
     } else {
-      // In a real app, this would show the COD Order Form
-      alert('Coming Soon: COD Order Confirmation for ' + user.displayName);
+      setIsOrderModalOpen(true);
     }
   };
 
@@ -110,7 +110,7 @@ const AppContent: React.FC = () => {
       <CanvasBackground />
 
       {/* Responsive Wrapper */}
-      <div className="w-full min-h-screen bg-[#f0f0f2] shadow-2xl relative flex flex-col mx-auto overflow-hidden">
+      <div className="w-full xl:max-w-7xl h-[100dvh] bg-white/60 backdrop-blur-2xl shadow-2xl relative flex flex-col mx-auto overflow-hidden">
         <div className="flex-shrink-0 z-50 w-full relative bg-white border-b border-gray-100">
           <Navbar onAuthClick={() => setIsAuthModalOpen(true)} />
         </div>
@@ -154,6 +154,47 @@ const AppContent: React.FC = () => {
         onClose={() => setIsAuthModalOpen(false)} 
         onSuccess={() => setIsAuthModalOpen(false)}
       />
+
+      <AnimatePresence>
+        {isOrderModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-[32px] w-full max-w-sm p-6 shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setIsOrderModalOpen(false)}
+                className="absolute top-4 right-4 p-2 bg-gray-50 rounded-full text-gray-400 hover:text-gray-900 transition-colors"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="w-16 h-16 bg-brand/10 text-brand rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                <Package size={32} />
+              </div>
+              
+              <h3 className="text-xl font-black text-center mb-2 text-gray-900 tracking-tighter">COD Order Confirmation</h3>
+              <p className="text-gray-500 text-center text-sm font-bold leading-relaxed mb-6">
+                Your flex order request has been received. The seller will contact you for delivery details. Keep flexing!
+              </p>
+              
+              <button 
+                onClick={() => setIsOrderModalOpen(false)}
+                className="btn-primary w-full shadow-brand/20 py-4"
+              >
+                Got it, Boss!
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
