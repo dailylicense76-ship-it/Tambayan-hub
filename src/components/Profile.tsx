@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Grid, CheckCircle2, Truck, AlertCircle, ShieldCheck, LogOut, Users, Coins, Plus } from 'lucide-react';
+import { Package, Grid, CheckCircle2, Truck, AlertCircle, ShieldCheck, LogOut, Users, Coins, Plus, Bookmark } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth, db } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
 import { firebaseService } from '../lib/firebaseService';
 import { cn } from '../lib/utils';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 
 export const Profile: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'flex' | 'orders'>('flex');
+  const [activeTab, setActiveTab] = useState<'flex' | 'orders' | 'saved'>('flex');
   const [orders, setOrders] = useState<any[]>([]);
+  const [savedPosts, setSavedPosts] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [stats, setStats] = useState({ following: 0, followers: 0 });
   const [coins, setCoins] = useState(0);
@@ -43,6 +44,21 @@ export const Profile: React.FC = () => {
         following: followingSnap.size,
         followers: followersSnap.size
       });
+
+      // Fetch saved posts
+      const savedQuery = collection(db, 'users', user.uid, 'saved');
+      const savedSnap = await getDocs(savedQuery);
+      const savedPostIds = savedSnap.docs.map(doc => doc.id);
+      
+      const posts = [];
+      for (const id of savedPostIds) {
+        const postRef = doc(db, 'posts', id);
+        const postSnap = await getDoc(postRef);
+        if (postSnap.exists()) {
+          posts.push({ id: postSnap.id, ...postSnap.data() });
+        }
+      }
+      setSavedPosts(posts);
     };
 
     const unsubWallet = firebaseService.subscribeWallet(user.uid, setCoins);
@@ -50,7 +66,7 @@ export const Profile: React.FC = () => {
     loadData();
 
     return () => unsubWallet();
-  }, [user, navigate]);
+  }, [user, navigate, activeTab]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -174,6 +190,16 @@ export const Profile: React.FC = () => {
           <Package size={20} />
           <span className="text-[10px] font-black uppercase tracking-widest">Fulfillment</span>
         </button>
+        <button 
+          onClick={() => setActiveTab('saved')}
+          className={cn(
+            "flex-1 py-4 flex flex-col items-center gap-1 border-b-2 transition-all",
+            activeTab === 'saved' ? "border-brand text-brand" : "border-transparent text-gray-300"
+          )}
+        >
+          <Bookmark size={20} />
+          <span className="text-[10px] font-black uppercase tracking-widest">Saved</span>
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -186,7 +212,7 @@ export const Profile: React.FC = () => {
               </div>
             ))}
           </div>
-        ) : (
+        ) : activeTab === 'orders' ? (
           <div className="space-y-4">
             {orders.length === 0 ? (
               <div className="py-20 text-center">
@@ -239,6 +265,26 @@ export const Profile: React.FC = () => {
                     Mark as Shipped (Confirm Order)
                   </button>
                 )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {savedPosts.length === 0 ? (
+              <div className="col-span-2 py-20 text-center">
+                <Bookmark size={48} className="text-gray-200 mx-auto mb-4" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-300">Walang saved flexes</p>
+              </div>
+            ) : savedPosts.map((post) => (
+              <div key={post.id} className="relative aspect-[4/5] bg-gray-100 rounded-2xl overflow-hidden cursor-pointer" onClick={() => navigate(`/post/${post.id}`)}>
+                {post.mediaType === 'video' ? (
+                  <video src={post.image} className="w-full h-full object-cover" />
+                ) : (
+                  <img src={post.image} className="w-full h-full object-cover" alt="flex" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-3">
+                  <p className="text-white text-xs font-bold line-clamp-2">{post.text}</p>
+                </div>
               </div>
             ))}
           </div>

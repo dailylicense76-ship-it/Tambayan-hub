@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { MessageSquare, Search, User, ChevronRight } from 'lucide-react';
+import { MessageSquare, Search, ChevronRight } from 'lucide-react';
 import { firebaseService } from '../lib/firebaseService';
 import { auth } from '../lib/firebase';
 import { ChatWindow } from './ChatWindow';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export const ChatList: React.FC = () => {
   const [chats, setChats] = useState<any[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -17,13 +21,22 @@ export const ChatList: React.FC = () => {
     const unsubscribe = firebaseService.subscribeChats(user.uid, (data) => {
       setChats(data);
       setLoading(false);
+      
+      const searchParams = new URLSearchParams(location.search);
+      const openChatWithId = searchParams.get('chatId');
+      if (openChatWithId && data.some(c => c.id === openChatWithId)) {
+        setSelectedChatId(openChatWithId);
+      }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [location.search]);
 
   if (selectedChatId) {
-    return <ChatWindow chatId={selectedChatId} onBack={() => setSelectedChatId(null)} />;
+    return <ChatWindow chatId={selectedChatId} onBack={() => {
+      setSelectedChatId(null);
+      navigate('/chats', { replace: true });
+    }} />;
   }
 
   return (

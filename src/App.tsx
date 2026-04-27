@@ -14,6 +14,8 @@ import { CreatePost } from './components/CreatePost';
 import { ChatList } from './components/ChatList';
 import { AuthModal } from './components/AuthModal';
 import { CanvasBackground } from './components/CanvasBackground';
+import { ChatWindow } from './components/ChatWindow';
+import { PostView } from './components/PostView';
 import { doc, getDocFromServer } from 'firebase/firestore';
 import { db } from './lib/firebase';
 import { AlertCircle } from 'lucide-react';
@@ -127,6 +129,7 @@ const AppContent: React.FC = () => {
                 <Route path="/activity" element={<Activity />} />
                 <Route path="/chats" element={<RequireAuth><ChatList /></RequireAuth>} />
                 <Route path="/post" element={<RequireAuth><CreatePost /></RequireAuth>} />
+                <Route path="/post/:postId" element={<RequireAuth><PostView onOrderClick={handleOrderClick} /></RequireAuth>} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/admin" element={<AdminDashboard />} />
               </Routes>

@@ -242,13 +242,13 @@ export const PostCard: React.FC<PostProps> = ({ id, user, content, commerce, sta
     if (user.uid === auth.currentUser.uid) return;
 
     try {
-      await firebaseService.getOrCreateChat(
+      const chatId = await firebaseService.getOrCreateChat(
         auth.currentUser.uid,
         user.uid,
         { displayName: auth.currentUser.displayName, photoURL: auth.currentUser.photoURL },
         { displayName: user.name, photoURL: user.avatar }
       );
-      navigate('/chats');
+      navigate(`/chats?chatId=${chatId}`);
     } catch (error) {
       console.error(error);
     }
